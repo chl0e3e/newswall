@@ -1,0 +1,12 @@
+selenium
+requests
+websockets
+pymongo[srv]
+motor
+aiohttp
+jinja2
+aiohttp_jinja2
+python-libxdo-ng
+xvfbwrapper
+Pillow
+janus

@@ -1,0 +1,1 @@
+/home/user/newswall/uc_versions/33d2a728488d12936d0bcc1e97f8e7a040a3b31f/undetected_chromedriver

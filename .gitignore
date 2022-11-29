@@ -1,0 +1,12 @@
+db.log
+uc/
+uc_versions/
+profiles/
+mongodb/
+images/
+db/
+chromedriver/
+chrome/
+.vars/
+__pycache__
+*.pyc
