@@ -154,8 +154,26 @@
             "keys": {
                 "url": "URL",
                 "title": "Title",
-                "site_url": "Section",
-                "site_name": "Section URL",
+                "section": "Section",
+                "section_url": "Section URL",
+                "site_url": "Site URL",
+                "site_name": "Site Name",
+                "comments": "Comments",
+                "description": "Description",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "huffpost": {
+            "path": "./sites/huffpost.py",
+            "name": "Huffington Post",
+            "class": "HuffingtonPost",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
                 "description": "Description",
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
