@@ -4,20 +4,19 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
-from PIL import Image
+from PIL import Image, ImageChops
+
 from io import BytesIO
-import base64
-import os
 import datetime
-import hashlib
 import time
 import traceback
+import hashlib
 
-class TheDailyMail:
+class Express:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.url = "https://www.dailymail.co.uk/"
+        self.url = "https://www.express.co.uk/"
         self.page_scroll_interval = 0.05
     
     def interval(self):
@@ -32,7 +31,7 @@ class TheDailyMail:
         self.xdotool.size(1920, 1080)
 
         while self.driver != None:
-            self.log("Fetching The Daily Mail")
+            self.log("Fetching Express")
 
             def navigate():
                 self.log("Navigating to page: %s" % (self.url))
@@ -40,15 +39,30 @@ class TheDailyMail:
 
             def wait_for_page_ready(interval):
                 self.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "content")))
-            
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.CSS_SELECTOR, "[role='main']")))
+
             def check_cookie_disclaimer():
                 try:
-                    consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, "[data-project='mol-fe-cmp'] button")
-                    consent_buttons[1].click()
-                except Exception as e:
-                    self.log("Failed to find cookie disclaimer", exception=traceback.format_exc())
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "[mode='primary']")
+                    if len(consent_elements) > 0:
+                        self.log("Cookie disclaimer found")
+                        consent_elements[0].click()
+                        time.sleep(1)
+                except:
+                    self.log("Failed to find cookie disclaimer")
 
+            def check_google_login_popup():
+                try:
+                    login_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='Sign in with Google Dialogue']")
+                    if len(login_elements) > 0:
+                        self.log("Google sign in popup found")
+                        self.driver.switch_to.frame(login_elements[0])
+                        self.driver.find_element(By.CSS_SELECTOR, "#close").click()
+                        self.driver.switch_to.default_content()
+                        time.sleep(1)
+                except:
+                    self.log("Failed to find Google sign in popup")
+            
             def scroll_down_page():
                 self.log("Scrolling down the page")
                 page_height = self.driver.execute_script("return document.body.scrollHeight")
@@ -80,24 +94,54 @@ class TheDailyMail:
                 left = location['x']
                 top = location['y']
                 
-                size = self.driver.execute_script("var element = arguments[0]; var b = window.getComputedStyle(element); return [b.width, b.height]", element)
-                width = int(float(size[0].replace("px", "")))
-                height = int(float(size[1].replace("px", "")))
+                size = self.driver.execute_script("var element = arguments[0]; return [element.offsetWidth, element.offsetHeight]", element)
+                width = size[0]
+                height = size[1]
+
+                if width == 0 or height == 0:
+                    return False
 
                 right = left + width
                 bottom = top + height
 
                 im = im.crop((left, top, right, bottom))
-                im.save(file)
+
+                def trim(im):
+                    bg = Image.new(im.mode, im.size, (255, 255, 255))
+                    diff = ImageChops.difference(im, bg)
+                    diff = ImageChops.add(diff, diff, 2.0, -100)
+                    bbox = diff.getbbox()
+                    if bbox:
+                        return im.crop(bbox)
+                    else:
+                        return trim(im.convert('RGB'))
+                
+                trim(im).save(file)
+                return True
 
             def save_articles():
                 self.log("Saving articles")
 
-                articles = self.driver.find_elements(By.CSS_SELECTOR, "[itemprop='itemListElement']")
+                articles = self.driver.find_elements(By.CSS_SELECTOR, "li.single-photo, li.with-photo, .box a, .block li, .main, [data-post-id]")
 
+                current_section = "Front Page"
+                current_section_url = self.url
                 for article in articles:
                     article_data = {}
-                    article_link_element = article.find_element(By.CSS_SELECTOR, "[itemprop='url']")
+                    article_link_element = None
+                    try:
+                        if article.tag_name == "A":
+                            article_link_element = article
+                        else:
+                            if self.driver.execute_script("return arguments[0].parentNode.tagName == \"H3\";", article):
+                                current_section_url = article.get_attribute("href")
+                                current_section = article.get_attribute("innerText")
+                                continue
+                            elif self.driver.execute_script("return arguments[0].parentNode.tagName == \"HEADER\";", article):
+                                continue
+                            article_link_element = article.find_element(By.CSS_SELECTOR, "a")
+                    except:
+                        continue
                     article_data["url"] = article_link_element.get_attribute("href")
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
 
@@ -108,26 +152,40 @@ class TheDailyMail:
                         article_data["screenshot_url"] = article_screenshot_paths["url"]
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
 
-                        article_data["title"] = self.driver.execute_script("return arguments[0].lastChild.wholeText;", article_link_element).strip()
+                        article_data["title"] = None
                         try:
-                            article_data["comments"] = article.find_element(By.CSS_SELECTOR, ".readerCommentNo").get_attribute("innerText")
+                            article_data["title"] = article_link_element.find_element(By.CSS_SELECTOR, "h1").get_attribute("innerText")
                         except:
-                            article_data["comments"] = "0"
+                            pass
+                        try:
+                            article_data["title"] = article_link_element.find_element(By.CSS_SELECTOR, "h2").get_attribute("innerText")
+                        except:
+                            pass
+                        try:
+                            article_data["title"] = article_link_element.find_element(By.CSS_SELECTOR, "h3").get_attribute("innerText")
+                        except:
+                            pass
+                        try:
+                            article_data["title"] = article_link_element.find_element(By.CSS_SELECTOR, "h4").get_attribute("innerText")
+                        except:
+                            pass
+                        try:
+                            article_data["title"] = article_link_element.find_element(By.CSS_SELECTOR, "h5").get_attribute("innerText")
+                        except:
+                            pass
+
+                        article_data["title"] = article_data["title"].strip()
+
+                        article_data["section"] = current_section
+                        article_data["section_url"] = current_section_url
 
                         try:
-                            article_data["shares"] = article.find_element(By.CSS_SELECTOR, ".share-link > .linktext > .bold").get_attribute("innerText")
+                            article_data["summary"] = article.find_element(By.CSS_SELECTOR, "p").get_attribute("innerText")
                         except:
-                            try:
-                                article_data["shares"] = article.find_element(By.CSS_SELECTOR, ".facebook > .linktext > .bold").get_attribute("innerText")
-                            except:
-                                article_data["shares"] = "0"
+                            pass
 
-                        try:
-                            article_data["videos"] = article.find_element(By.CSS_SELECTOR, ".videos-link > .linktext > .bold").get_attribute("innerText")
-                        except:
-                            article_data["videos"] = "0"
-
-                        article_data["text"] = article.find_element(By.CSS_SELECTOR, "p").get_attribute("innerText")
+                        import json
+                        print(json.dumps(article_data, indent=4))
 
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
@@ -140,6 +198,7 @@ class TheDailyMail:
                 wait_for_page_ready(5)
                 time.sleep(2)
                 check_cookie_disclaimer()
+                check_google_login_popup()
                 scroll_down_page()
                 save_articles()
             except Exception as e:

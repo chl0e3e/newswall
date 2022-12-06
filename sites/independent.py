@@ -4,19 +4,21 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
-from PIL import Image
+from PIL import Image, ImageChops
+
 from io import BytesIO
 import base64
 import os
 import datetime
 import time
 import traceback
+import hashlib
 
-class TheSun:
+class Independent:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.url = "https://www.thesun.co.uk/"
+        self.url = "https://www.independent.co.uk/"
         self.page_scroll_interval = 0.05
     
     def interval(self):
@@ -31,7 +33,7 @@ class TheSun:
         self.xdotool.size(1920, 1080)
 
         while self.driver != None:
-            self.log("Fetching The Sun")
+            self.log("Fetching Independent")
 
             def navigate():
                 self.log("Navigating to page: %s" % (self.url))
@@ -39,7 +41,7 @@ class TheSun:
 
             def wait_for_page_ready(interval):
                 self.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "main-content")))
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "sectionContent")))
 
             def check_cookie_disclaimer():
                 try:
@@ -47,11 +49,39 @@ class TheSun:
                     if len(consent_elements) > 0:
                         self.log("Cookie disclaimer found")
                         self.driver.switch_to.frame(consent_elements[0])
-                        self.driver.find_element(By.CSS_SELECTOR, "[title='Fine By Me!']").click()
+                        self.driver.find_element(By.CSS_SELECTOR, "[title='AGREE']").click()
                         self.driver.switch_to.default_content()
                         time.sleep(1)
                 except:
                     self.log("Failed to find cookie disclaimer")
+
+            def check_google_ad():
+                try:
+                    ad_frame_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='3rd party ad content']")
+                    if len(ad_frame_elements) > 0:
+                        self.log("Google ad found")
+                        self.driver.switch_to.frame(ad_frame_elements[0])
+                        self.driver.find_element(By.CSS_SELECTOR, "[role='button']").click()
+                        self.driver.switch_to.default_content()
+                        time.sleep(1)
+                except:
+                    self.log("Failed to find Google ad")
+
+            def check_subscribe_modal():
+                try:
+                    for i in range(10):
+                        self.xdotool.scroll_down()
+                        time.sleep(0.5)
+                    subscribe_modal = self.driver.find_elements(By.CSS_SELECTOR, ".tp-active iframe")
+                    print(len(subscribe_modal))
+                    if len(subscribe_modal) > 0:
+                        self.driver.switch_to.frame(subscribe_modal[0])
+                        self.driver.find_element(By.CSS_SELECTOR, ".pn-template__close").click()
+
+                    self.driver.switch_to.default_content()
+                    time.sleep(1)
+                except:
+                    self.log("Failed to close subscribe modal")
             
             def scroll_down_page():
                 self.log("Scrolling down the page")
@@ -84,73 +114,60 @@ class TheSun:
                 left = location['x']
                 top = location['y']
                 
-                size = self.driver.execute_script("var element = arguments[0]; var b = window.getComputedStyle(element); return [b.width, b.height]", element)
-                width = int(float(size[0].replace("px", "")))
-                height = int(float(size[1].replace("px", "")))
+                size = self.driver.execute_script("var element = arguments[0]; return [element.offsetWidth, element.offsetHeight]", element)
+                width = size[0]
+                height = size[1]
+
+                if width == 0 or height == 0:
+                    return False
 
                 right = left + width
                 bottom = top + height
 
                 im = im.crop((left, top, right, bottom))
-                im.save(file)
+
+                def trim(im):
+                    bg = Image.new(im.mode, im.size, (255, 255, 255))
+                    diff = ImageChops.difference(im, bg)
+                    diff = ImageChops.add(diff, diff, 2.0, -100)
+                    bbox = diff.getbbox()
+                    if bbox:
+                        return im.crop(bbox)
+                    else:
+                        return trim(im.convert('RGB'))
+                
+                trim(im).save(file)
+                return True
 
             def save_articles():
                 self.log("Saving articles")
-                header = self.driver.find_element(By.CSS_SELECTOR, "#react-root > div > .sun-container > .theme-main:first-of-type")
-                self.driver.execute_script("var element = arguments[0]; element.parentNode.removeChild(element);", header)
 
-                articles = self.driver.find_elements(By.CSS_SELECTOR, "[data-id]")
+                articles = self.driver.find_elements(By.CSS_SELECTOR, ".article-default")
+
                 for article in articles:
-                    article_id = article.get_attribute("data-id")
+                    article_data = {}
+                    article_link_element = article.find_element(By.CSS_SELECTOR, ".title")
+                    article_data["url"] = article_link_element.get_attribute("href")
+                    article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
 
                     article_db_obj = self.helper.sync_find_if_exists(article_id)
                     if article_db_obj == None:
-                        article_data = {
-                            "type": article.get_attribute("data-type")
-                        }
-                        
-                        article_ss_element = article
-                        if article_data["type"] == "small-teaser":
-                            article_ss_element = article.find_element(By.XPATH, '..')
-
                         article_screenshot_paths = self.helper.get_image_path(article_id)
-                        save_element_image(article_ss_element, article_screenshot_paths["path"])
+                        save_element_image(article, article_screenshot_paths["path"])
                         article_data["screenshot_url"] = article_screenshot_paths["url"]
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
 
-                        if article_data["type"] == "hero-splash-teaser":
-                            article_data["url"] = article.find_element(By.CSS_SELECTOR, "a:first-of-type").get_attribute("href")
-                            article_data["tagline"] = article.find_element(By.CSS_SELECTOR, ".splash-teaser-kicker").get_attribute("aria-label")
-                            article_data["headline"] = article.find_element(By.CSS_SELECTOR, ".nk-headline-heading").get_attribute("innerText")
-                            article_data["title"] = "%s: %s" % (article_data["tagline"], article_data["headline"])
-                            section = article.find_element(By.CSS_SELECTOR, ".splash-section-name")
-                            article_data["section_url"] = section.get_attribute("href")
-                            article_data["section"] = section.find_element(By.TAG_NAME, "span").text
-                        elif article_data["type"] == "small-teaser":
-                            copy_link_element = article.find_element(By.CSS_SELECTOR, ".teaser__copy-container > a")
-                            article_data["url"] = copy_link_element.get_attribute("href")
-                            article_data["tagline"] = copy_link_element.find_element(By.CSS_SELECTOR, ".teaser__headline").get_attribute("innerText")
-                            article_data["headline"] = copy_link_element.find_element(By.CSS_SELECTOR, ".teaser__subdeck").get_attribute("innerText").strip()
-                            article_data["title"] = "%s: %s" % (article_data["tagline"], article_data["headline"])
-                            section = article.find_element(By.CSS_SELECTOR, ".article-data__tag > a")
-                            article_data["section"] = section.get_attribute("innerText")
-                            article_data["section_url"] = section.get_attribute("href")
-                        elif article_data["type"] == "large-teaser" or article_data["type"] == "large-side-teaser":
-                            article_data["url"] = article.find_element(By.CSS_SELECTOR, "a:first-of-type").get_attribute("href")
-                            article_data["tagline"] = article.find_element(By.CSS_SELECTOR, ".teaser__headline").get_attribute("innerText")
-                            article_data["headline"] = article.find_element(By.CSS_SELECTOR, ".teaser__subdeck").get_attribute("innerText").strip()
-                            article_data["title"] = "%s: %s" % (article_data["tagline"], article_data["headline"])
-                            article_data["lead"] = article.find_element(By.CSS_SELECTOR, ".teaser__lead").get_attribute("innerText")
-                            section = article.find_element(By.CSS_SELECTOR, ".article-data__tag > a")
-                            article_data["section"] = section.get_attribute("innerText")
-                            article_data["section_url"] = section.get_attribute("href")
-
+                        article_data["title"] = article_link_element.get_attribute("innerText")
+                        article_capsule = article.find_element(By.CSS_SELECTOR, "a.capsule")
+                        article_capsule_class = article_capsule.get_attribute("class")
+                        if "live-blog" in article_capsule_class:
+                            article_capsule = self.driver.execute_script("return arguments[0].nextSibling;", article_capsule)
+                        article_data["section"] = article_capsule.get_attribute("innerText")
                         try:
-                            article.find_element(By.CSS_SELECTOR, ".teaser__item-play")
-                            article_data["video"] = True
+                            article_data["section_url"] = article_capsule.get_attribute("href")
                         except:
-                            article_data["video"] = False
-                                
+                            article_data["section_url"] = None
+
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -161,6 +178,8 @@ class TheSun:
                 navigate()
                 wait_for_page_ready(5)
                 check_cookie_disclaimer()
+                check_google_ad()
+                check_subscribe_modal()
                 scroll_down_page()
                 save_articles()
             except Exception as e:

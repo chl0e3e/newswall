@@ -20,3 +20,6 @@ def get_build_var(name):
     var_file.close()
     print("%s -> %s" % (name, var))
     return var
+
+def get_config_path():
+    return os.path.realpath(os.path.join(get_build_root(), "config.json"))

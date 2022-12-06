@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APT_DEPENDENCIES="binutils wget python3 python3-pip git xvfb"
+APT_DEPENDENCIES="binutils wget python3 python3-pip git xvfb xdotool"
 
 echo "Attempting to install $APT_DEPENDENCIES"
 echo ""

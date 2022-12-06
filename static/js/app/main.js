@@ -1,19 +1,15 @@
-define(["jquery", "masonry", "imagesloaded"], function($, Masonry, imagesLoaded) {
+define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize", "log"], function($, Masonry, imagesLoaded, SiteQueryBuilder, materialize, log) {
     $(function() {
-        const socket = new WebSocket('ws://localhost:8080/main');
+        const socket = new WebSocket("ws://localhost:8080/main");
+
+        const masonry = new Masonry("#wall", {
+            itemSelector: "article",
+            columnWidth: 80
+        });
 
         function send(data) {
             return socket.send(JSON.stringify(data));
         }
-
-        socket.addEventListener('open', function (event) {
-            console.log("Socket open");
-        });
-
-        const masonry = new Masonry('#wall', {
-            itemSelector: 'article',
-            columnWidth: 80
-        });
 
         function setFilter(filter) {
             window.filter = filter;
@@ -23,6 +19,10 @@ define(["jquery", "masonry", "imagesloaded"], function($, Masonry, imagesLoaded)
 
         function sendFilter() {
             send({"cmd": "filter", "filter": window.filter});
+        }
+
+        function requestSites() {
+            send({"cmd": "sites"});
         }
 
         function tabClick(e) {
@@ -44,49 +44,155 @@ define(["jquery", "masonry", "imagesloaded"], function($, Masonry, imagesLoaded)
             $("#log").hide();
         }
 
-        function tabLogClick(e) {
-            $("#wall").hide();
-            $("#log").show();
-        }
-
         $("#tab-all").click(tabAllClick);
-        $("#tab-log").click(tabLogClick);
+        $(".tabs").tabs();
+        $('select').formSelect({
+            constrainWidth: false
+        });
 
-        socket.addEventListener('message', function (event) {
-            const parsedData = JSON.parse(event.data);
+        socket.addEventListener("open", function (event) {
+            console.log("Socket open");
+            requestSites();
+        });
 
-            if (parsedData.cmd == "sites") {
-                window.sites = parsedData.sites;
+        var queryBuilder;
 
-                for(var site in parsedData.sites) {
-                    var tabLink = $('<a></a>')
-                        .attr("class", "nav-link")
-                        .attr("href", "#")
-                        .text(parsedData.sites[site])
-                        .click(tabClick);
-                    var tab = $('<li></li>')
-                        .attr("class", "nav-item")
-                        .attr("data-site", site)
-                        .append(tabLink);
+        $("#btn-reset").on("click", function() {
 
-                    $("#tab-all").insertAfter(tab);
+        });
+        
+        $("#btn-query").on("click", function() {
+            if(typeof queryBuilder !== 'undefined') {
+                var query = queryBuilder.query();
+                console.log(query);
+                console.log(JSON.stringify(query));
+                send({
+                    "cmd": "query",
+                    "data": query
+                });
+            } else {
+                alert("The query builder is not initialised.");
+            }
+        });
+        
+        $("#btn-add-as-filter").on("click", function() {
+
+        });
+
+        $("#tab-query").on("click", function() {
+            var querySection = $("#query");
+            if(querySection.hasClass("hidden")) {
+                querySection.slideDown( "fast", function() {
+                    querySection.removeClass("hidden");
+                });
+            } else {
+                querySection.slideUp( "fast", function() {
+                    querySection.addClass("hidden");
+                });
+            }
+        });
+
+        $("#tab-log").on("click", function() {
+            var logSection = $("#log");
+            if(logSection.hasClass("hidden")) {
+                logSection.slideDown( "fast", function() {
+                    logSection.removeClass("hidden");
+                });
+            } else {
+                logSection.slideUp( "fast", function() {
+                    logSection.addClass("hidden");
+                });
+            }
+        });
+
+        socket.addEventListener("message", function (event) {
+            const message = JSON.parse(event.data);
+
+            if (message.cmd == "sites") {
+                if(typeof queryBuilder === 'undefined') {
+                    queryBuilder = new SiteQueryBuilder("builder", message.data);
+                    $("#builder-container").append(queryBuilder.render());
+                    queryBuilder.postRender();
                 }
+                // let optgroups = {
+                //     "all_sites": "All Sites",
+                // };
+                // let filters = [];
+                // let siteFilterValues = {};
 
-                if (localStorage.getItem("filter") === null) {
-                    var filter = {};
-                    for(var site in parsedData.sites) {
-                        filter[site] = "*";
-                    }
-                    setFilter(filter);
-                } else {
-                    window.filter = JSON.parse(localStorage.getItem("filter"));
-                }
+                // for (const site in message.data) {
+                //     optgroups[site] = "--- " + message.data[site]["name"];
+                //     siteFilterValues[site] = message.data[site]["name"];
+                //     console.log(site);
+                // }
+                
+                // filters.push({
+                //     id: "site",
+                //     label: "Site",
+                //     type: "string",
+                //     input: "select",
+                //     values: siteFilterValues,
+                //     optgroup: "all_sites",
+                //     operators: ["equal", "not_equal"]
+                // });
 
-                sendFilter();
-            } else if(parsedData.cmd == "report") {
+                // for (const site in message.data) {
+                //     for (const key in message.data[site]["keys"]) {
+                //         if (key.startsWith("screenshot_")) {
+                //             continue;
+                //         }
+
+                //         filters.push({
+                //             id: site + "|" + key,
+                //             label: message.data[site]["keys"][key],
+                //             type: "string",
+                //             input: "text",
+                //             values: siteFilterValues,
+                //             optgroup: site,
+                //             operators: ["equal", "not_equal", "begins_with", "not_begins_with", "contains", "not_contains", "ends_with", "not_ends_with", "is_empty", "is_not_empty", "is_null", "is_not_null"]
+                //         });
+                //     }
+                // }
+
+                //console.log(optgroups);
+                //console.log(filters);
+                
+                /*$("#builder").queryBuilder({
+                    filters: filters,
+                    optgroups: optgroups,
+                    //rules: rules_basic
+                });*/
+                // window.sites = message.sites;
+
+                // for(var site in message.sites) {
+                //     var tabLink = $("<a></a>")
+                //         .attr("class", "nav-link")
+                //         .attr("href", "#")
+                //         .text(message.sites[site])
+                //         .click(tabClick);
+                //     var tab = $("<li></li>")
+                //         .attr("class", "nav-item")
+                //         .attr("data-site", site)
+                //         .append(tabLink);
+
+                //     $("#tab-all").insertAfter(tab);
+                // }
+
+                // if (localStorage.getItem("filter") === null) {
+                //     var filter = {};
+                //     for(var site in message.sites) {
+                //         filter[site] = "*";
+                //     }
+                //     setFilter(filter);
+                // } else {
+                //     window.filter = JSON.parse(localStorage.getItem("filter"));
+                // }
+
+                // sendFilter();
+            } else if(message.cmd == "report") {
                 let articles = [];
-                for(var reportIndex in parsedData.report) {
-                    let report = parsedData.report[reportIndex];
+                for(var reportIndex in message.report) {
+                    let report = message.report[reportIndex];
 
                     let article = $("<article></article>")
                         .attr("id", report._id)
@@ -109,15 +215,15 @@ define(["jquery", "masonry", "imagesloaded"], function($, Masonry, imagesLoaded)
 
                     masonry.layout();
                 });
-            } else if(parsedData.cmd == "log") {
+            } else if(message.cmd == "log") {
                 $("#log > table > tbody").append($("<tr></tr>")
                     .append($("<th></th>")
                         .attr("scope", "row")
-                        .text(parsedData.log.date))
+                        .text(message.log.date))
                     .append($("<td></td>")
-                        .text(parsedData.log.source))
+                        .text(message.log.source))
                     .append($("<td></td>")
-                        .text(parsedData.log.text)))
+                        .text(message.log.text)))
             }
         });
     });

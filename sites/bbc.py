@@ -6,32 +6,18 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 from PIL import Image, ImageChops
 from io import BytesIO
-import base64
-import os
 import datetime
 import hashlib
 import time
 import traceback
 
-__site__ = "bbc"
-__site_name__ = "BBC"
-__type__ = "BBC"
-
 class BBC:
-    def __init__(self, newswall):
-        self.newswall = newswall
+    def __init__(self, helper):
+        self.helper = helper
         self.driver = None
         self.url = "https://www.bbc.co.uk/news/"
         self.categories = {}
         self.page_scroll_interval = 0.05
-        self.id = __site__
-        self.name = __site_name__
-    
-    def interval(self):
-        return 30
-
-    def log(self, message, exception=None):
-        return self.newswall.sync_log(__site__, message, exception=exception)
 
     def start(self):
         self.setup_chromedriver()
@@ -39,14 +25,14 @@ class BBC:
         self.xdotool.size(1920, 1080)
 
         while self.driver != None:
-            self.log("Fetching BBC")
+            self.helper.log("Fetching BBC")
 
             def navigate():
-                self.log("Navigating to page: %s" % (self.url))
+                self.helper.log("Navigating to page: %s" % (self.url))
                 self.driver.get(self.url)
 
             def wait_for_page_ready(interval):
-                self.log("Waiting for page")
+                self.helper.log("Waiting for page")
                 WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "orb-modules")))
 
             def scroll_down_page():
@@ -55,15 +41,20 @@ class BBC:
                 browser_height = self.driver.get_window_size()["height"]
                 last_scroll_y = 0
                 scroll_y = 0
+                scroll_attempts_failed = 0
                 self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
                 while True:
+                    if scroll_attempts_failed == 5:
+                        break
                     self.xdotool.scroll_down()
                     time.sleep(self.page_scroll_interval)
                     scroll_y = self.driver.execute_script("return window.scrollY")
                     self.log("scroll_y: %d" % (scroll_y))
                     if scroll_y == last_scroll_y and scroll_y > browser_height:
-                        self.log("No more page to scroll")
-                        break
+                        scroll_attempts_failed = scroll_attempts_failed + 1
+                        continue
+                    else:
+                        scroll_attempts_failed = 0
                     last_scroll_y = scroll_y
             
             def check_cookie_disclaimer():
@@ -71,7 +62,7 @@ class BBC:
                     consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, "#bbccookies-continue-button")
                     consent_buttons[0].click()
                 except Exception as e:
-                    self.log("Failed to find cookie disclaimer", exception=traceback.format_exc())
+                    self.helper.log("Failed to find cookie disclaimer", exception=traceback.format_exc())
 
             def save_element_image(element, file):
                 if element.size['width'] > 0 or element.size['height'] > 0:
@@ -99,7 +90,7 @@ class BBC:
                 im = im.crop((left, top, right, bottom))
 
                 def trim(im):
-                    bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
+                    bg = Image.new(im.mode, im.size, (255,255,255))
                     diff = ImageChops.difference(im, bg)
                     diff = ImageChops.add(diff, diff, 2.0, -100)
                     bbox = diff.getbbox()
@@ -112,7 +103,7 @@ class BBC:
                 return True
 
             def save_articles(category=None):
-                self.log("Saving articles for '%s'" % ("Front Page" if category == None else category))
+                self.helper.log("Saving articles for '%s'" % ("Front Page" if category == None else category))
                 if category == None:
                     category_links = self.driver.find_elements(By.CSS_SELECTOR, "[aria-label='news'] .nw-o-link")
                     categories = []
@@ -120,7 +111,7 @@ class BBC:
                         category_name = category_link.find_elements(By.CSS_SELECTOR, "span")[0].get_attribute("innerText")
                         category_url = category_link.get_attribute("href")
                         if not category_url in categories:
-                            self.log("Found category %s @ %s" % (category_name, category_url))
+                            self.helper.log("Found category %s @ %s" % (category_name, category_url))
                             self.categories[category_name] = category_url
                             categories.append(category_url)
                 else:
@@ -130,33 +121,45 @@ class BBC:
 
                 for article in promos:
                     article_data = {}
-                    article_link_element = article.find_element(By.CSS_SELECTOR, ".gs-c-promo-heading")
-                    if article_link_element.tag_name != "a":
-                        continue
-                    article_data["url"] = article_link_element.get_attribute("href")
+                    try:
+                        article_link_element = article.find_element(By.CSS_SELECTOR, ".gs-c-promo-heading")
+                        if article_link_element.tag_name != "a":
+                            continue
+                        article_data["url"] = article_link_element.get_attribute("href")
+                    except:
+                        article_link_element = article.find_element(By.CSS_SELECTOR, "a")
+                        article_data["url"] = article_link_element.get_attribute("href")
+
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
+                    self.helper.log("Saving article %s <%s>" % (article_id, article_data["url"]))
 
-                    article_db_obj = self.newswall.sync_find_if_exists(__site__, article_id)
+                    article_db_obj = self.helper.sync_find_if_exists(article_id)
                     if article_db_obj == None:
-                        self.log("Saving %s" % (article_data["url"]))
+                        self.helper.log("Saving %s" % (article_data["url"]))
 
-                        article_screenshot_paths = self.newswall.get_image_path(__site__, article_id)
+                        article_screenshot_paths = self.helper.get_image_path(article_id)
                         article_screenshot_saved = save_element_image(article, article_screenshot_paths["path"])
                         if article_screenshot_saved:
                             article_data["screenshot_url"] = article_screenshot_paths["url"]
                             article_data["screenshot_path"] = article_screenshot_paths["path"]
                         else:
-                            self.log("Failed to save article image %s" % (article_data["url"]))
+                            self.helper.log("Failed to save article image %s" % (article_data["url"]))
 
-                        article_data["title"] = article.find_element(By.CSS_SELECTOR, ".gs-c-promo-heading__title").get_attribute("innerText")
+                        try:
+                            article_data["title"] = article.find_element(By.CSS_SELECTOR, ".gs-c-promo-heading__title").get_attribute("innerText")
+                        except:
+                            article_data["title"] = article_link_element.get_attribute("innerText")
+
                         try:
                             article_data["summary"] = article.find_element(By.CSS_SELECTOR, ".gs-c-promo-summary").get_attribute("innerText")
                         except:
                             article_data["summary"] = None
+
                         try:
                             article_data["datetime"] = article.find_element(By.CSS_SELECTOR, ".date").get_attribute("datetime")
                         except:
                             article_data["datetime"] = None
+
                         try:
                             section_link_element = article.find_element(By.CSS_SELECTOR, ".gs-c-section-link")
                             article_data["section"] = section_link_element.get_attribute("innerText").strip()
@@ -172,11 +175,11 @@ class BBC:
                             article_data["category"] = category
                             article_data["category_url"] = self.categories[category]
 
-                        report = self.newswall.sync_report(__site__, article_id, article_data)
-                        self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
+                        report = self.helper.sync_report(article_id, article_data)
+                        self.helper.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
-                        self.newswall.sync_insert_presence(__site__, article_db_obj.get('_id'), datetime.datetime.utcnow())
-                        self.log("Inserted presence into %s" % article_id)
+                        self.helper.sync_insert_presence(article_db_obj.get('_id'), datetime.datetime.utcnow())
+                        self.helper.log("Inserted presence into %s" % article_id)
 
                 qas = self.driver.find_elements(By.CSS_SELECTOR, ".qa-post")
 
@@ -192,35 +195,40 @@ class BBC:
                         article_data["url"] = self.categories[category]
                     article_id = hashlib.sha256(article_title.encode()).hexdigest()
 
-                    article_db_obj = self.newswall.sync_find_if_exists(__site__, article_id)
+                    article_db_obj = self.helper.sync_find_if_exists(article_id)
                     if article_db_obj == None:
-                        self.log("Saving %s" % (article_data["url"]))
+                        self.helper.log("Saving %s" % (article_data["url"]))
 
-                        article_screenshot_paths = self.newswall.get_image_path(__site__, article_id)
+                        article_screenshot_paths = self.helper.get_image_path(article_id)
                         article_screenshot_saved = save_element_image(article, article_screenshot_paths["path"])
                         if article_screenshot_saved:
                             article_data["screenshot_url"] = article_screenshot_paths["url"]
                             article_data["screenshot_path"] = article_screenshot_paths["path"]
                         else:
-                            self.log("Failed to save article image %s" % (article_data["url"]))
+                            self.helper.log("Failed to save article image %s" % (article_data["url"]))
 
                         article_data["title"] = article_title
+                        
                         try:
                             article_data["summary"] = article.find_element(By.CSS_SELECTOR, ".qa-story-summary").get_attribute("innerText")
                         except:
                             article_data["summary"] = None
+
                         try:
                             article_data["datetime"] = article.find_element(By.CSS_SELECTOR, ".lx-stream-post__meta-time .qa-post-auto-meta").get_attribute("innerText")
                         except:
                             article_data["datetime"] = None
+
                         try:
                             article_data["contributor_name"] = article.find_element(By.CSS_SELECTOR, ".qa-contributor-name").get_attribute("innerText")
                         except:
                             article_data["contributor_name"] = None
+
                         try:
                             article_data["contributor_role"] = article.find_element(By.CSS_SELECTOR, ".qa-contributor-role").get_attribute("innerText")
                         except:
                             article_data["contributor_role"] = None
+
                         try:
                             section_link_element = article.find_element(By.CSS_SELECTOR, ".gs-c-section-link")
                             article_data["section"] = section_link_element.get_attribute("innerText").strip()
@@ -241,11 +249,11 @@ class BBC:
                             article_data["category"] = category
                             article_data["category_url"] = self.categories[category]
 
-                        report = self.newswall.sync_report(__site__, article_id, article_data)
-                        self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
+                        report = self.helper.sync_report(article_id, article_data)
+                        self.helper.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
-                        self.newswall.sync_insert_presence(__site__, article_db_obj.get('_id'), datetime.datetime.utcnow())
-                        self.log("Inserted presence into %s" % article_id)
+                        self.helper.sync_insert_presence(article_db_obj.get('_id'), datetime.datetime.utcnow())
+                        self.helper.log("Inserted presence into %s" % article_id)
                 
                 if category == None:
                     for category_name, category_url in self.categories.items():
@@ -262,13 +270,13 @@ class BBC:
                 #scroll_down_page()
                 save_articles()
             except Exception as e:
-                self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
-                self.log("Shutting down")
+                self.helper.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
+                self.helper.log("Shutting down")
                 self.stop()
             
-            time.sleep(self.interval())
+            time.sleep(self.helper.interval())
         
-        self.log("Exited main loop")
+        self.helper.log("Exited main loop")
     
     def stop(self):
         if self.driver != None:
@@ -276,11 +284,11 @@ class BBC:
             self.driver = None
     
     def setup_chromedriver(self):
-        self.log("Initialising a new Chrome instance")
+        self.helper.log("Initialising a new Chrome instance")
 
         if self.driver != None:
             self.stop()
             
-        xdotool, driver = self.newswall.sync_uc(__site__)
+        xdotool, driver = self.helper.sync_uc()
         self.driver = driver
         self.xdotool = xdotool

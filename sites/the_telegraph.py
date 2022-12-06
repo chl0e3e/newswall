@@ -13,24 +13,18 @@ import hashlib
 import time
 import traceback
 
-__site__ = "the_telegraph"
-__site_name__ = "The Telegraph"
-__type__ = "TheTelegraph"
-
 class TheTelegraph:
-    def __init__(self, newswall):
-        self.newswall = newswall
+    def __init__(self, helper):
+        self.helper = helper
         self.driver = None
         self.url = "https://www.telegraph.co.uk/"
         self.page_scroll_interval = 0.05
-        self.id = __site__
-        self.name = __site_name__
     
     def interval(self):
         return 30
 
     def log(self, message, exception=None):
-        return self.newswall.sync_log(__site__, message, exception=exception)
+        return self.helper.sync_log(message, exception=exception)
 
     def start(self):
         self.setup_chromedriver()
@@ -74,15 +68,20 @@ class TheTelegraph:
                 browser_height = self.driver.get_window_size()["height"]
                 last_scroll_y = 0
                 scroll_y = 0
+                scroll_attempts_failed = 0
                 self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
                 while True:
+                    if scroll_attempts_failed == 5:
+                        break
                     self.xdotool.scroll_down()
                     time.sleep(self.page_scroll_interval)
                     scroll_y = self.driver.execute_script("return window.scrollY")
                     self.log("scroll_y: %d" % (scroll_y))
                     if scroll_y == last_scroll_y and scroll_y > browser_height:
-                        self.log("No more page to scroll")
-                        break
+                        scroll_attempts_failed = scroll_attempts_failed + 1
+                        continue
+                    else:
+                        scroll_attempts_failed = 0
                     last_scroll_y = scroll_y
 
             def save_element_image(element, file, sibling_check=False):
@@ -132,9 +131,9 @@ class TheTelegraph:
                         article_id = hashlib.sha256(article_url.encode("ascii")).hexdigest()
                         article_data = {}
 
-                        article_db_obj = self.newswall.sync_find_if_exists(__site__, article_id)
+                        article_db_obj = self.helper.sync_find_if_exists(article_id)
                         if article_db_obj == None:
-                            article_screenshot_paths = self.newswall.get_image_path(__site__, article_id)
+                            article_screenshot_paths = self.helper.get_image_path(article_id)
                             save_element_image(card, article_screenshot_paths["path"], sibling_check=True)
                             article_data["screenshot_url"] = article_screenshot_paths["url"]
                             article_data["screenshot_path"] = article_screenshot_paths["path"]
@@ -157,10 +156,10 @@ class TheTelegraph:
                                 article_data["standfirst"] = card_meta_text if card_meta_text != "" else None
                             except:
                                 pass
-                            report = self.newswall.sync_report(__site__, article_id, article_data)
+                            report = self.helper.sync_report(article_id, article_data)
                             self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                         else:
-                            self.newswall.sync_insert_presence(__site__, article_db_obj.get('_id'), datetime.datetime.utcnow())
+                            self.helper.sync_insert_presence(article_db_obj.get('_id'), datetime.datetime.utcnow())
                             self.log("Inserted presence into %s" % article_id)
                 
                 article_lists = self.driver.find_elements(By.CSS_SELECTOR, ".article-list")
@@ -194,9 +193,9 @@ class TheTelegraph:
                         article_id = hashlib.sha256(article_url.encode("ascii")).hexdigest()
                         article_data = {}
 
-                        article_db_obj = self.newswall.sync_find_if_exists(__site__, article_id)
+                        article_db_obj = self.helper.sync_find_if_exists(article_id)
                         if article_db_obj == None:
-                            article_screenshot_paths = self.newswall.get_image_path(__site__, article_id)
+                            article_screenshot_paths = self.helper.get_image_path(article_id)
                             save_element_image(card, article_screenshot_paths["path"], sibling_check=False)
                             article_data["screenshot_url"] = article_screenshot_paths["url"]
                             article_data["screenshot_path"] = article_screenshot_paths["path"]
@@ -220,10 +219,10 @@ class TheTelegraph:
                                 article_data["standfirst"] = card_standfirst_text if card_standfirst_text != "" else None
                             except:
                                 article_data["standfirst"] = None
-                            report = self.newswall.sync_report(__site__, article_id, article_data)
+                            report = self.helper.sync_report(article_id, article_data)
                             self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                         else:
-                            self.newswall.sync_insert_presence(__site__, article_db_obj.get('_id'), datetime.datetime.utcnow())
+                            self.helper.sync_insert_presence(article_db_obj.get('_id'), datetime.datetime.utcnow())
                             self.log("Inserted presence into %s" % article_id)
 
             try:
@@ -233,7 +232,7 @@ class TheTelegraph:
                 time.sleep(2)
                 check_subscribe_modal()
                 time.sleep(2)
-                #scroll_down_page()
+                scroll_down_page()
                 save_articles()
             except Exception as e:
                 self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
@@ -255,6 +254,6 @@ class TheTelegraph:
         if self.driver != None:
             self.stop()
             
-        xdotool, driver = self.newswall.sync_uc(__site__)
+        xdotool, driver = self.helper.sync_uc()
         self.driver = driver
         self.xdotool = xdotool

@@ -1,4 +1,6 @@
-@import url("bootstrap.min.css");
+@import "query-builder.css";
+@import "materialize.min.css";
+@import "xterm.min.css";
 
 @font-face {
     font-family: 'RobotoMono';
@@ -23,4 +25,250 @@ body {
     padding: 5px;
     border: 1px solid black;
     margin: 5px;
+}
+/*
+#builder .rules-group-container {
+    min-height: 20px;
+    padding: 19px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);
+    width: 100%;
+}
+*/
+
+
+#builder .rule-container {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+#builder .group-actions {
+    display: inline;
+}
+
+#builder .group-conditions {
+    float: right;
+}
+
+#builder > .rules-group-container {
+    padding-left: 0;
+}
+
+#builder .rules-list > .rules-group-container {
+    background: #cfd8dc;
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list > .rules-group-container > .rules-group-body > .rules-list>::before {
+    border-color: black;
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list > .rules-group-container > .rules-group-body > .rules-list>::after {
+    border-color: black;
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list > .rules-group-container > .rules-group-body > .rules-list .rule-header {
+    left: -15px;
+}
+
+.query-builder .rules-list>::after, .query-builder .rules-list>::before {
+    border-color: #838383;
+    
+    width: 40px;
+}
+
+#builder .rules-list > .rules-group-container {
+    background: #cfd8dc;
+}
+
+
+#builder .rules-list > .rule-container {
+    background: #cfd8dc;
+    padding-top: 5px;
+}
+#builder .rules-list > .rule-container.root-rule {
+    padding-top: 15px;
+}
+
+#builder .rule-header {
+    display: inline;
+    margin-right: 10px;
+}
+
+#builder .root-rule > .rule-header {
+    display: inline-flex;
+    margin-left: 10px;
+    margin-right: 20px;
+}
+
+#builder .rule-body {
+    display: inline-block;
+}
+
+#builder .root-rule .rules-list > .rules-group-container {
+    padding-bottom: 6px;
+}   
+
+#builder .root-rule > .rule-children > .rules-group-container {
+    padding-top: 10px;
+}
+#builder .root-rule > .rule-children > .rules-group-container > .rules-group-header {
+    margin-bottom: 19px;
+}
+
+#builder .root-rule .rule-children .rule-header button {
+    margin-left: 5px;
+}
+
+#builder .root-rule .rule-children .rules-group-body .rule-list .rule-header button {
+    margin-left: 0px;
+}
+
+#builder .root-rule .rule-children .rules-group-body .rule-list .rules-group-container {
+    padding-top: 10px;
+}
+
+#builder > .rules-group-container > .rules-group-body {
+    margin-left: 14px;
+}
+
+#builder .rules-group-container {
+    padding: 0px;
+    padding-left: 10px;
+    padding-bottom: 6px;
+    padding-top: 15px;
+    margin-top: 0;
+}
+
+.query-builder .rules-children>::after,
+.query-builder .rules-children>::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    width: 25px;
+    height: calc(50% + 4px);
+    border-color: #ccc;
+    border-style: solid
+}
+
+.query-builder .rule-children>::before {
+    top: -4px;
+    border-width: 0 0 2px 2px
+}
+
+.query-builder .rule-children>::after {
+    top: 50%;
+    border-width: 0 0 0 2px
+}
+
+.query-builder .rule-children>:first-child::before {
+    top: -19px;
+    height: calc(50% + 19px);
+}
+
+.query-builder .rules-list>:first-child::before {
+    top: -21px;
+    height: calc(50% + 21px);
+}
+.query-builder .rule-children>:last-child::before {
+    border-radius: 0 0 0 4px
+}
+
+.query-builder .rule-children>:last-child::after {
+    display: none
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list>:first-child::before {
+    top: -12px;
+    height: 48px;
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list > .root-rule:first-of-type::before {
+    height: 51px;
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list>:first-child::after {
+    top: 36px;
+    height: 100%;
+}
+
+
+#builder > .rules-group-container > .rules-group-body > .rules-list>::before,
+#builder > .rules-group-container > .rules-group-body > .rules-list>::after {
+    width: 40px;
+    height: 47px;
+    top: -4px;
+}
+
+#builder > .rules-group-container > .rules-group-body > .rules-list>::after {
+    height: calc(100% + 4px);
+}
+
+#builder .rules-group-container > .rules-group-body > .rules-list > .rules-group-container::before {
+    top: -21px;
+    height: 54px;
+}
+
+#builder .rules-group-container > .rules-group-body > .rules-list > .rules-group-container::after {
+    height: calc(100% + 4px);
+    top: 0;
+}
+
+#builder .rules-group-header {
+    padding-right: 10px;
+}
+
+#builder .root-rule > .root-children > .rules-group-container {
+    padding-top: 10px;
+}
+
+#builder-container {
+    padding-right: 60px;
+    padding-top: 10px;
+}
+
+#builder .group-actions button {
+    margin-right: 5px;
+}
+
+#builder .root-rule > .rule-body > .rule-filter-container > .select-wrapper,
+#builder .root-rule > .rule-body > .rule-operator-container > .select-wrapper,
+#builder .root-rule > .rule-body > .rule-value-container > .select-wrapper {
+    background-color: #cfd8dc !important;
+}
+
+#builder > .rules-group-container {
+    margin-bottom: 0;
+    padding-bottom: 10px;
+    padding-top: 25px;
+}
+
+#builder > .rules-group-container > .rules-group-header {
+    margin-bottom: 0;
+}
+
+#builder .group-conditions label span {
+    color: black;
+}
+
+#builder .group-conditions label.cond-and {
+    margin-right: 20px;
+}
+
+.dropdown-content li a.disabled {
+    cursor: default;
+    color: #999;
+}
+
+.hidden {
+    display: none;
+}
+
+#log .xterm .xterm-screen canvas {
+    position: initial;
+}
+
+.query-builder .rule-value-container {
+    border-left: none;
 }

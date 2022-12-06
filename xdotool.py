@@ -26,5 +26,8 @@ class XdotoolWrapper:
     def scroll_down(self):
         return self._exec(["click", "--window", str(self.window_id), "5"])
 
+    def page_up(self):
+        return self._exec(["key", "--window", str(self.window_id), "Page_Up"])
+
     def size(self, width, height):
         return self._exec(["windowsize", str(self.window_id), str(width), str(height)])

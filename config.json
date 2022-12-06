@@ -1,0 +1,165 @@
+{
+    "sites": {
+        "bbc": {
+            "path": "./sites/bbc.py",
+            "name": "BBC News",
+            "class": "BBC",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "summary": "Summary",
+                "datetime": "Date/Time",
+                "contributor_name": "Contributor Name",
+                "contributor_role": "Contributor Role",
+                "section": "Section",
+                "body": "Body",
+                "category": "Category",
+                "category_url": "Category URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            },
+            "options": {
+                "scrape_categories": true
+            }
+        },
+        "the_daily_mail": {
+            "path": "./sites/the_daily_mail.py",
+            "name": "The Daily Mail",
+            "class": "TheDailyMail",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "comments": "Comments",
+                "shares": "Shares",
+                "videos": "Videos",
+                "text": "Text",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "the_sun": {
+            "path": "./sites/the_sun.py",
+            "name": "The Sun",
+            "class": "TheSun",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "headline": "Headline",
+                "tagline": "Tagline",
+                "section": "Section",
+                "section_url": "Section URL",
+                "lead": "Lead",
+                "type": "Type",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "the_telegraph": {
+            "path": "./sites/the_telegraph.py",
+            "name": "The Telegraph",
+            "class": "TheTelegraph",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "kicker": "Kicker",
+                "headline": "Headline",
+                "section": "Section",
+                "section_url": "Section URL",
+                "standfirst": "Standfirst",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "independent": {
+            "path": "./sites/independent.py",
+            "name": "Independent",
+            "class": "Independent",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "mirror": {
+            "path": "./sites/mirror.py",
+            "name": "Mirror",
+            "class": "Mirror",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "express": {
+            "path": "./sites/express.py",
+            "name": "Express",
+            "class": "Express",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
+                "summary": "Summary",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "metro": {
+            "path": "./sites/metro.py",
+            "name": "Metro",
+            "class": "Metro",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
+                "summary": "Summary",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "channel4": {
+            "path": "./sites/channel4.py",
+            "name": "Channel 4 News",
+            "class": "Channel4",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
+                "description": "Description",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "reach": {
+            "path": "./sites/reach.py",
+            "name": "Reach",
+            "class": "Reach",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "site_url": "Section",
+                "site_name": "Section URL",
+                "description": "Description",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        }
+    }
+}

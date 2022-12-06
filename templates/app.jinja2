@@ -3,38 +3,55 @@
 <head>
     <title>newswall</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
     <link rel="stylesheet" href="/static/css/app.css">
     <script type="text/javascript" src="/static/js/lib/require.js"></script>
 </head>
 <body>
-    <ul class="nav nav-tabs" id="tabs">
-        <li class="nav-item" id="tab-all">
-            <a class="nav-link active" aria-current="page" href="#">All</a>
-        </li>
+    <div id="container-fluid">
+        <ul class="tabs" id="tabs">
+            <li class="tab" id="tab-all">
+                <a class="nav-link active" aria-current="page" href="#">All</a>
+            </li>
 
-        <li class="nav-item" id="tab-log">
-            <a class="nav-link" href="#">Log</a>
-        </li>
-    </ul>
+            <li class="tab" id="tab-query">
+                <a class="nav-link" href="#">Query</a>
+            </li>
 
-    <main id="log">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Source</th>
-                    <th scope="col">Text</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </main>
+            <li class="tab" id="tab-log">
+                <a class="nav-link" href="#">Log</a>
+            </li>
+        </ul>
 
-    <main id="wall">
-    </main>
+        <main id="query" class="hidden">
+            <div class="card">
+                <div class="card-content white-text" id="builder-container">
+
+                </div>
+                <div class="card-action">
+                    <a href="#" id="btn-query" class="btn green">Query</a>
+                    <a href="#" id="btn-reset" class="btn red darken-2">Reset</a>
+                    <a href="#" id="btn-add-as-filter" class="btn blue">Add As Filter</a>
+                </div>
+            </div>
+        </main>
+
+        <main id="log" class="hidden">
+            <div class="card">
+                <div class="card-content white-text" id="log-container">
+
+                </div>
+            </div>
+        </main>
+
+        <main id="wall">
+        </main>
+    </div>
 
     <script type="text/javascript" src="/static/js/app.js"></script>
 </body>
