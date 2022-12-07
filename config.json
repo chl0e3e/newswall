@@ -150,7 +150,7 @@
             "path": "./sites/reach.py",
             "name": "Reach",
             "class": "Reach",
-            "enabled": true,
+            "enabled": false,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -168,13 +168,30 @@
             "path": "./sites/huffpost.py",
             "name": "Huffington Post",
             "class": "HuffingtonPost",
-            "enabled": true,
+            "enabled": false,
             "keys": {
                 "url": "URL",
                 "title": "Title",
                 "section": "Section",
                 "section_url": "Section URL",
                 "description": "Description",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "standard": {
+            "path": "./sites/standard.py",
+            "name": "Standard",
+            "class": "Standard",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "section_url": "Section URL",
+                "lead": "Lead",
+                "author": "Author",
+                "author_url": "Author URL",
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
             }

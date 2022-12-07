@@ -14,11 +14,11 @@ import time
 import traceback
 import hashlib
 
-class HuffingtonPost:
+class Standard:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.url = "https://www.huffingtonpost.co.uk/"
+        self.url = "https://www.standard.co.uk/"
         self.page_scroll_interval = 0.05
     
     def interval(self):
@@ -33,7 +33,7 @@ class HuffingtonPost:
         self.xdotool.size(1920, 1080)
 
         while self.driver != None:
-            self.log("Fetching Huffington Post")
+            self.log("Fetching Standard")
 
             def navigate():
                 self.log("Navigating to page: %s" % (self.url))
@@ -41,17 +41,32 @@ class HuffingtonPost:
 
             def wait_for_page_ready(interval):
                 self.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "main")))
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "frameInner")))
 
-            def check_cookie_disclaimer():
+            def check_newsletter():
                 try:
-                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#qc-cmp2-container button")
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, ".tp-container-inner > iframe")
                     if len(consent_elements) > 0:
-                        self.log("Cookie disclaimer found")
-                        consent_elements[2].click()
+                        self.log("Cookie disclaimer 1 found")
+                        self.driver.switch_to.frame(consent_elements[0])
+                        self.driver.find_element(By.CSS_SELECTOR, ".close-btn").click()
+                        self.driver.switch_to.default_content()
+                        time.sleep(1)
                 except:
-                    self.log("Failed to find cookie disclaimer")
+                    self.log("Failed to find cookie disclaimer 1")
             
+            def check_cookie_disclaimer_2():
+                try:
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='SP Consent Message']")
+                    if len(consent_elements) > 0:
+                        self.log("Cookie disclaimer 2 found")
+                        self.driver.switch_to.frame(consent_elements[0])
+                        self.driver.find_element(By.CSS_SELECTOR, "[title='Agree']").click()
+                        self.driver.switch_to.default_content()
+                        time.sleep(1)
+                except:
+                    self.log("Failed to find cookie disclaimer 2")
+
             def scroll_down_page():
                 self.log("Scrolling down the page")
                 page_height = self.driver.execute_script("return document.body.scrollHeight")
@@ -110,12 +125,14 @@ class HuffingtonPost:
 
             def save_articles():
                 self.log("Saving articles")
+                
+                self.driver.execute_script("document.querySelector('header').remove()")
 
-                articles = self.driver.find_elements(By.CSS_SELECTOR, ".card")
+                articles = self.driver.find_elements(By.CSS_SELECTOR, ".article, .hero-article")
 
                 for article in articles:
                     article_data = {}
-                    article_link_element = article.find_element(By.CSS_SELECTOR, ".card__headline")
+                    article_link_element = article.find_element(By.CSS_SELECTOR, ".title")
                     article_data["url"] = article_link_element.get_attribute("href")
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
 
@@ -126,18 +143,25 @@ class HuffingtonPost:
                         article_data["screenshot_url"] = article_screenshot_paths["url"]
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
 
-                        article_data["title"] = article_link_element.get_attribute("innerText")
+                        article_data["title"] = article.find_element(By.CSS_SELECTOR, ".title").get_attribute("innerText")
                         try:
-                            article_label_link = article.find_element(By.CSS_SELECTOR, "a.card__label__link")
-                            article_data["section"] = article_label_link.get_attribute("innerText")
-                            article_data["section_url"] = article_label_link.get_attribute("href")
+                            article_capsule_link = article.find_element(By.CSS_SELECTOR, ".capsule")
+                            article_data["section"] = article_capsule_link.get_attribute("innerText")
+                            article_data["section_url"] = article_capsule_link.get_attribute("href")
                         except:
                             article_data["section"] = None
                             article_data["section_url"] = None
                         try:
-                            article_data["description"] = article.find_element(By.CSS_SELECTOR, ".card__description").get_attribute("innerText")
+                            article_data["lead"] = article.find_element(By.CSS_SELECTOR, ".lead").get_attribute("innerText")
                         except:
-                            article_data["description"] = None
+                            article_data["lead"] = None
+                        try:
+                            article_author_link = article.find_element(By.CSS_SELECTOR, "[class*='ArticleAuthor'] a")
+                            article_data["author"] = article_author_link.get_attribute("innerText")
+                            article_data["author_url"] = article_author_link.get_attribute("href")
+                        except:
+                            article_data["author"] = None
+                            article_data["author_url"] = None
 
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
@@ -148,7 +172,10 @@ class HuffingtonPost:
             try:
                 navigate()
                 wait_for_page_ready(5)
-                check_cookie_disclaimer()
+                time.sleep(2)
+                check_cookie_disclaimer_2()
+                time.sleep(2)
+                check_newsletter()
                 time.sleep(5)
                 #wait_for_page_ready(5)
                 scroll_down_page()

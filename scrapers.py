@@ -99,7 +99,7 @@ class Helper:
         log_id = self.sync_mongodb_database["log"].insert_one(log_line).inserted_id
         log_line["_id"] = log_id
         
-        print("[%s] [%s] [%s] %s" % (str(log_id), log_line["source"], log_line["date"], message))
+        print("[%s] [%s] %s" % (log_line["source"], log_line["date"], message))
         if exception != None:
             print(exception)
         return log_id
