@@ -22,6 +22,12 @@ echo ""
 echo "downloading Release file"
 CHROME_DPKG_RELEASE=$(mktemp)
 wget -O $CHROME_DPKG_RELEASE -q --show-progress "$CHROME_REPOSITORY_DIST_ROOT/Release"
+CHROME_DPKG_RELEASE_DOWNLOADED=$?
+
+if [[ "$CHROME_DPKG_RELEASE_DOWNLOADED" -ne 0 ]]; then
+  echo "Could not download the Chrome Debian repository Release file (are you connected to the internet?)"
+  exit 1
+fi
 
 IS_SHA256_BLOCK=0
 
@@ -48,7 +54,7 @@ echo "removing temp file $CHROME_DPKG_RELEASE"
 rm $CHROME_DPKG_RELEASE
 
 if [ -z ${CHROME_DPKG_PACKAGES_PATH} ]; then echo "error: could not find the path to the Packages file for the Chrome Debian repository"
-  exit 1
+  exit 2
 fi
 
 # we have a correct path to the Packages file
@@ -73,7 +79,7 @@ if [[ "$CHROME_DPKG_PACKAGES_OUR_SHA256" == "$CHROME_DPKG_PACKAGES_THEIR_SHA256"
   echo ""
 else echo "repo integrity check failed:"
   echo "$CHROME_DPKG_PACKAGES_OUR_SHA256 != $CHROME_DPKG_PACKAGES_THEIR_SHA256"
-  exit 2
+  exit 3
 fi
 
 echo "parsing Packages"
@@ -96,7 +102,7 @@ RELEASE_COUNT=${#SECTIONS[@]}
 echo "$RELEASE_COUNT releases found"
 echo ""
 if [[ "$RELEASE_COUNT" -eq 0 ]]; then echo "error: no releases parsed"
-  exit 3
+  exit 4
 fi
 
 # broken parsing of the Packages file
@@ -131,7 +137,7 @@ for section in "${SECTIONS[@]}"; do
 done
 
 if [ -z ${PACKAGE} ]; then echo "no valid packages found"
-  exit 4
+  exit 5
 fi
 
 regex_open_bracket="\("
@@ -204,7 +210,7 @@ for line in $DEPENDS; do
 done
   
 if [[ "$dependencies_met" -eq 0 ]]; then echo ""
-  exit 5
+  exit 6
 fi
 echo "dependencies are met"
 
@@ -227,7 +233,7 @@ if [[ "$OUR_SHA256" == "$SHA256" ]]; then echo "package integrity validated:"
 else echo "package integrity check failed:"
   echo "$OUR_SHA256 != $SHA256"
   rm $CHROME_DEB_FILE
-  exit 6
+  exit 7
 fi
 
 echo "extracting Chrome package"
@@ -268,5 +274,5 @@ if [[ "$CHROME_DOWNLOADED" -eq 0 ]]; then
   exit 0
 else
   echo "Failed to download Chrome"
-  exit 7
+  exit 8
 fi

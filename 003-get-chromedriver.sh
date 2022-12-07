@@ -20,7 +20,7 @@ CHROMEDRIVER_INDEX=$(mktemp)
 echo "tmp: $CHROMEDRIVER_INDEX"
 wget -O $CHROMEDRIVER_INDEX -q --show-progress "$CHROMEDRIVER_STORAGE_URL"
 CHROMEDRIVER_INDEX_SUCCESS=$?
-if [[ "$CHROMEDRIVER_INDEX_SUCCESS" -ne 0 ]]; then echo "failed to get chromedriver version listings"
+if [[ "$CHROMEDRIVER_INDEX_SUCCESS" -ne 0 ]]; then echo "failed to get chromedriver version listings (are you connected to the internet?)"
   exit 1
 fi
 

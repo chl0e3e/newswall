@@ -2,11 +2,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
     $(function() {
         const socket = new WebSocket("ws://localhost:8080/main");
 
-        const masonry = new Masonry("#wall", {
-            itemSelector: "article",
-            columnWidth: 80
-        });
-
         function send(data) {
             return socket.send(JSON.stringify(data));
         }
@@ -24,31 +19,8 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         function requestSites() {
             send({"cmd": "sites"});
         }
-
-        function tabClick(e) {
-            $("#wall").show();
-            $("#log").hide();
-
-            let tab = $(e.target).parent();
-            let site = tab.attr("data-site");
-            $("#tabs .active").removeClass("active");
-            tab.addClass("active");
-
-            var filter = {};
-            filter[site] = "*";
-            setFilter(filter);
-        }
-
-        function tabAllClick(e) {
-            $("#wall").show();
-            $("#log").hide();
-        }
-
-        $("#tab-all").click(tabAllClick);
-        $(".tabs").tabs();
-        $('select').formSelect({
-            constrainWidth: false
-        });
+        
+        //$("#tabs").tabs();
 
         socket.addEventListener("open", function (event) {
             console.log("Socket open");
@@ -105,116 +77,148 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             }
         });
 
-        socket.addEventListener("message", function (event) {
-            const message = JSON.parse(event.data);
+        window.gridElements = [];
+        window.currentData = [];
+        window.masonry = null;
+        window.gridEnabled = true;
 
-            if (message.cmd == "sites") {
-                if(typeof queryBuilder === 'undefined') {
-                    queryBuilder = new SiteQueryBuilder("builder", message.data);
-                    $("#builder-container").append(queryBuilder.render());
-                    queryBuilder.postRender();
-                }
-                // let optgroups = {
-                //     "all_sites": "All Sites",
-                // };
-                // let filters = [];
-                // let siteFilterValues = {};
+        function tabSiteClick(e) {
+            var tabElement = $(e.target).closest(".nav-link");
+            var tabSiteID = tabElement.attr("data-site-id");
 
-                // for (const site in message.data) {
-                //     optgroups[site] = "--- " + message.data[site]["name"];
-                //     siteFilterValues[site] = message.data[site]["name"];
-                //     console.log(site);
-                // }
-                
-                // filters.push({
-                //     id: "site",
-                //     label: "Site",
-                //     type: "string",
-                //     input: "select",
-                //     values: siteFilterValues,
-                //     optgroup: "all_sites",
-                //     operators: ["equal", "not_equal"]
-                // });
+            console.log(tabElement);
+            console.log(tabSiteID);
 
-                // for (const site in message.data) {
-                //     for (const key in message.data[site]["keys"]) {
-                //         if (key.startsWith("screenshot_")) {
-                //             continue;
-                //         }
+            if (window.gridEnabled) {
+                window.gridElements.forEach(function(el) {
+                    window.masonry.remove(el);
+                });
+                window.masonry.layout();
+                window.gridElements = [];
+            } else {
+                $("#list article").remove();
+            }
 
-                //         filters.push({
-                //             id: site + "|" + key,
-                //             label: message.data[site]["keys"][key],
-                //             type: "string",
-                //             input: "text",
-                //             values: siteFilterValues,
-                //             optgroup: site,
-                //             operators: ["equal", "not_equal", "begins_with", "not_begins_with", "contains", "not_contains", "ends_with", "not_ends_with", "is_empty", "is_not_empty", "is_null", "is_not_null"]
-                //         });
-                //     }
-                // }
+            window.currentData = [];
 
-                //console.log(optgroups);
-                //console.log(filters);
-                
-                /*$("#builder").queryBuilder({
-                    filters: filters,
-                    optgroups: optgroups,
-                    //rules: rules_basic
-                });*/
-                // window.sites = message.sites;
+            send({
+                "cmd": "query",
+                "data": {"type":"root","children":[{"type":"rule","children":[],"filter":"site","operator":"equals","value":tabSiteID}]}
+            });
+        }
 
-                // for(var site in message.sites) {
-                //     var tabLink = $("<a></a>")
-                //         .attr("class", "nav-link")
-                //         .attr("href", "#")
-                //         .text(message.sites[site])
-                //         .click(tabClick);
-                //     var tab = $("<li></li>")
-                //         .attr("class", "nav-item")
-                //         .attr("data-site", site)
-                //         .append(tabLink);
+        function readCurrentData() {
+            let gridArticlesLoaded = [];
 
-                //     $("#tab-all").insertAfter(tab);
-                // }
-
-                // if (localStorage.getItem("filter") === null) {
-                //     var filter = {};
-                //     for(var site in message.sites) {
-                //         filter[site] = "*";
-                //     }
-                //     setFilter(filter);
-                // } else {
-                //     window.filter = JSON.parse(localStorage.getItem("filter"));
-                // }
-
-                // sendFilter();
-            } else if(message.cmd == "report") {
-                let articles = [];
-                for(var reportIndex in message.report) {
-                    let report = message.report[reportIndex];
-
-                    let article = $("<article></article>")
-                        .attr("id", report._id)
+            for(var reportIndex in window.currentData) {
+                let report = window.currentData[reportIndex];
+                if (window.gridEnabled) {
+                    let articleGridItem = $("<article></article>")
+                        .attr("id", "grid_" + report._id)
                         .append($("<a></a>")
                             .attr("href", report.url)
                             .append($("<img />")
                                 .attr("src", report.screenshot_url)
                                 .attr("alt", "")));
 
-                    $("#wall").append(article);
-                    articles.push(article);
-                    //masonry.appended(article);
+                    articleGridItem.css("display", "none");
+                    gridArticlesLoaded.push(articleGridItem[0]);
+                    $("#wall").append(articleGridItem);
+                } else {
+                    let articleListItem = $("<article></article>")
+                        .attr("id", "list_" + report._id)
+                        .attr("class", "collection-item")
+                        .append($("<a></a>")
+                            .attr("href", report.url)
+                            .append($("<div></div>")
+                                .attr('class', 'image')
+                                .append($("<img />")
+                                    .attr("src", report.screenshot_url)
+                                    .attr("alt", report.title)))
+                            .append($("<div></div>")
+                                .attr("class", "info")
+                                .append($("<h5></h5>")
+                                    .text(report.title))));
+                    $("#list").append(articleListItem);
                 }
+            }
 
+            if (window.gridEnabled) {
                 window.imagesLoaded($("#wall")[0], function() {
-                    for (var articleIndex in articles) {
-                        let article = articles[articleIndex];
-                        masonry.appended(article);
+                    for (var articleGridIndex in gridArticlesLoaded) {
+                        let articleGridItem = gridArticlesLoaded[articleGridIndex];
+                        masonry.appended(articleGridItem);
+                        window.gridElements.push(articleGridItem);
                     }
 
                     masonry.layout();
                 });
+            }
+        }
+
+        function grid(enabled) {
+            if(enabled) {
+                $("#btn-change-view").find("i").text("grid_off");
+                $("#list").hide();
+                $("#wall").show();
+                window.masonry = new Masonry("#wall", {
+                    itemSelector: "article",
+                    columnWidth: 80
+                });
+                readCurrentData();
+            } else {
+                $("#wall").hide();
+                if(window.masonry != null) {
+                    window.masonry.destroy();
+                    window.masonry = null;
+                }
+
+                $("#list").show();
+                $("#btn-change-view").find("i").text("grid_on");
+                readCurrentData();
+            }
+        }
+
+        grid(window.gridEnabled);
+
+        $("#btn-change-view").on("click", function(e) {
+            window.gridEnabled = !window.gridEnabled;
+            grid(window.gridEnabled);
+        });
+
+        socket.addEventListener("message", function (event) {
+            const message = JSON.parse(event.data);
+
+            if (message.cmd == "sites") {
+                if(typeof queryBuilder === 'undefined') {
+                    for(var site in message.data) {
+                        var siteData = message.data[site];
+                        var tabImage = $("<img />")
+                            .attr("alt", siteData["name"])
+                            .attr("src", siteData["logo"]);
+                        var tabImageContainer = $("<div></div>")
+                            .attr("class", "image-container")
+                            .append(tabImage);
+                        var tabLink = $("<a></a>")
+                            .attr("class", "nav-link")
+                            .attr("href", "#")
+                            .attr("data-site-id", site)
+                            .click(tabSiteClick)
+                            .append(tabImageContainer);
+                        var tab = $("<li></li>")
+                            .attr("class", "tab")
+                            .append(tabLink);
+
+                        tab.insertBefore($("#tab-query"));
+                    }
+                    
+                    queryBuilder = new SiteQueryBuilder("builder", message.data);
+                    $("#builder-container").append(queryBuilder.render());
+                    queryBuilder.postRender();
+                }
+            } else if(message.cmd == "report") {
+                window.currentData = message.report;
+                readCurrentData();
             } else if(message.cmd == "log") {
                 $("#log > table > tbody").append($("<tr></tr>")
                     .append($("<th></th>")

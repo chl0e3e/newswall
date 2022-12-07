@@ -6,6 +6,7 @@ import base64
 import threading
 import json
 import time
+import sys
 
 from pymongo import MongoClient # sync mongodb
 
@@ -147,22 +148,35 @@ def import_site(path):
     return site
 
 if __name__ == "__main__":
-    print("Attempting to connect to MongoDB synchronously")
-    sync_mongodb_client = MongoClient("mongodb://localhost:27017/")
-    sync_mongodb_database = sync_mongodb_client["newswall"]
-    info = sync_mongodb_client.server_info()
-    print("Application connected to MongoDB (%s) synchronously" % (info["version"]))
-
     print("Attempting to load configuration file")
     config_file = None
     with open(config_path) as f:
         config_file = json.load(f)
     if config_file == None:
         print("Failed to load configuration file from %s" % config_path)
+        sys.exit(1)
     print("Loaded configuration file from %s" % config_path)
+
+    if not "database_url" in config_file:
+        print("Configuration does not contain a MongoDB database URL")
+        sys.exit(2)
+
+    if not "database_name" in config_file:
+        print("Configuration does not contain a MongoDB database name")
+        sys.exit(3)
+
+    print("Attempting to connect to MongoDB synchronously")
+    sync_mongodb_client = MongoClient(config_file["database_url"])
+    sync_mongodb_database = sync_mongodb_client[config_file["database_name"]]
+    info = sync_mongodb_client.server_info()
+    print("Application connected to MongoDB (%s) synchronously" % (info["version"]))
     
     sites = config_file["sites"].items()
     print("Loaded %d sites" % (len(sites)))
+
+    if len(sites) == 0:
+        print("No scrapers configured, aborting.")
+        sys.exit(4)
 
     threads = []
     for site_id, site_config in sites:
@@ -202,6 +216,10 @@ if __name__ == "__main__":
         thread = threading.Thread(target=module_obj.start, args=[])
         threads.append(thread)
         thread.start()
+
+    if len(threads) == 0:
+        print("No scrapers started, aborting.")
+        sys.exit(5)
 
     print("All site threads started")
     for thread in threads:

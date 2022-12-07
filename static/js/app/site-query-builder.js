@@ -11,9 +11,9 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
 
     const OPERATORS = {
         "equals": "Equals",
-        "contains": "Contains"
-        //"is_null": "Is Null",
-        //"is_not_null": "Is Not Null"
+        "contains": "Contains",
+        "regex": "Regex",
+        "regex_case_insensitive": "Regex (case-insensitive)"
     };
 
     let components = {};

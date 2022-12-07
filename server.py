@@ -17,8 +17,6 @@ from buildutil import get_build_folder, get_config_path
 
 class NewsWall:
     def __init__(self):
-        self.mongo_url = "mongodb://localhost:27017/"
-        self.mongo_database = "newswall"
         self.clients = {}
         self.running = False
 
@@ -30,23 +28,27 @@ class NewsWall:
             web.static('/images', get_build_folder("images"))
         ]
 
-    async def sites(self, paths=False):
+    async def config(self):
         async with aiofiles.open(get_config_path(), mode='r') as config_file_object:
             config = await config_file_object.read()
-            config = json.loads(config)
+            return json.loads(config)
 
-            sites = {}
-            for site, site_config in config["sites"].items():
+    async def sites(self, paths=False):
+        config = await self.config()
+        sites = {}
+        for site, site_config in config["sites"].items():
+            if not paths:
                 site_config.pop('path', None)
-                sites[site] = site_config
-            return sites
+            sites[site] = site_config
+        return sites
 
     async def start(self):
         self.running = True
+        config = await self.config()
 
         print("Attempting to connect to MongoDB asynchronously")
-        self.async_mongodb_client = motor.motor_asyncio.AsyncIOMotorClient(self.mongo_url)
-        self.async_mongodb_database = self.async_mongodb_client[self.mongo_database]
+        self.async_mongodb_client = motor.motor_asyncio.AsyncIOMotorClient(config["database_url"])
+        self.async_mongodb_database = self.async_mongodb_client[config["database_name"]]
         await self.async_log("Application connected to MongoDB asynchronously")
         
         self.app = web.Application()
@@ -159,20 +161,39 @@ class NewsWall:
                                     "$regex": re.escape(node["value"])
                                 }
                             }
+                        elif node["operator"] == "regex":
+                            return {
+                                node["filter"]: {
+                                    "$regex": node["value"]
+                                }
+                            }
+                        elif node["operator"] == "regex_case_insensitive":
+                            return {
+                                node["filter"]: {
+                                    "$regex": node["value"],
+                                    "$options": "i"
+                                }
+                            }
 
                 if failed:
                     return []
                 
                 aggregate_union = {
                     "$unionWith": {
-                        "coll": site_node["value"]
+                        "coll": site_node["value"],
+                        "pipeline": []
                     }
                 }
 
                 if len(site_node["children"]) > 0:
-                    aggregate_union["$unionWith"]["pipeline"] = []
                     for child_node in site_node["children"]:
                         aggregate_union["$unionWith"]["pipeline"] = [{"$match": await traverse(child_node)}]
+
+                aggregate_union["$unionWith"]["pipeline"].append({
+                    "$addFields": {
+                        "site": site_node["value"]
+                    }
+                })
 
                 aggregation.append(aggregate_union)
 
@@ -193,7 +214,7 @@ class NewsWall:
                     if data["cmd"] == "query":
                         print("Received query")
                         aggregation = await build_aggregation(data["data"])
-                        #aggregation.append({ "$sort": { "_id" : -1} })
+                        aggregation.append({ "$sort": { "_id" : -1} })
                         aggregation.append({ "$limit": 100 })
                         print(aggregation)
                         docs = []

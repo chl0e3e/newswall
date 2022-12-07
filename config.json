@@ -1,9 +1,12 @@
 {
+    "database_url": "mongodb://localhost:27017/",
+    "database_name": "newswall",
     "sites": {
         "bbc": {
             "path": "./sites/bbc.py",
             "name": "BBC News",
             "class": "BBC",
+            "logo": "/static/img/bbc.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -27,6 +30,7 @@
             "path": "./sites/the_daily_mail.py",
             "name": "The Daily Mail",
             "class": "TheDailyMail",
+            "logo": "/static/img/dailymail.gif",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -43,6 +47,7 @@
             "path": "./sites/the_sun.py",
             "name": "The Sun",
             "class": "TheSun",
+            "logo": "/static/img/the_sun.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -60,6 +65,7 @@
             "path": "./sites/the_telegraph.py",
             "name": "The Telegraph",
             "class": "TheTelegraph",
+            "logo": "/static/img/the_telegraph.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -77,6 +83,7 @@
             "path": "./sites/independent.py",
             "name": "Independent",
             "class": "Independent",
+            "logo": "/static/img/independent.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -91,6 +98,7 @@
             "path": "./sites/mirror.py",
             "name": "Mirror",
             "class": "Mirror",
+            "logo": "/static/img/mirror.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -105,6 +113,7 @@
             "path": "./sites/express.py",
             "name": "Express",
             "class": "Express",
+            "logo": "/static/img/express.png",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -120,6 +129,7 @@
             "path": "./sites/metro.py",
             "name": "Metro",
             "class": "Metro",
+            "logo": "/static/img/metro.png",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -135,6 +145,7 @@
             "path": "./sites/channel4.py",
             "name": "Channel 4 News",
             "class": "Channel4",
+            "logo": "/static/img/channel4.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -150,6 +161,7 @@
             "path": "./sites/reach.py",
             "name": "Reach",
             "class": "Reach",
+            "logo": "/static/img/reach.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -168,6 +180,7 @@
             "path": "./sites/huffpost.py",
             "name": "Huffington Post",
             "class": "HuffingtonPost",
+            "logo": "/static/img/huffpost.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -183,6 +196,7 @@
             "path": "./sites/standard.py",
             "name": "Standard",
             "class": "Standard",
+            "logo": "/static/img/standard.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -200,6 +214,7 @@
             "path": "./sites/the_conversation.py",
             "name": "The Conversation",
             "class": "TheConversation",
+            "logo": "/static/img/the_conversation.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -214,6 +229,7 @@
             "path": "./sites/pinknews.py",
             "name": "PinkNews",
             "class": "PinkNews",
+            "logo": "/static/img/pinknews.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -227,6 +243,7 @@
             "path": "./sites/wired.py",
             "name": "Wired",
             "class": "Wired",
+            "logo": "/static/img/wired.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -242,6 +259,7 @@
             "path": "./sites/slashdot.py",
             "name": "Slashdot",
             "class": "Slashdot",
+            "logo": "/static/img/slashdot.PNG",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -259,6 +277,7 @@
             "path": "./sites/the_register.py",
             "name": "The Register",
             "class": "TheRegister",
+            "logo": "/static/img/the_register.PNG",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -275,6 +294,7 @@
             "path": "./sites/hacker_news.py",
             "name": "Hacker News",
             "class": "HackerNews",
+            "logo": "/static/img/hacker_news.PNG",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -293,6 +313,7 @@
             "path": "./sites/the_guardian.py",
             "name": "The Guardian",
             "class": "TheGuardian",
+            "logo": "/static/img/the_guardian.svg",
             "enabled": false,
             "keys": {
                 "url": "URL",
@@ -308,6 +329,7 @@
             "path": "./sites/arstechnica.py",
             "name": "Ars Technica",
             "class": "ArsTechnica",
+            "logo": "/static/img/ars_technica.svg",
             "enabled": true,
             "keys": {
                 "url": "URL",

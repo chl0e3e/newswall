@@ -151,7 +151,9 @@ class Channel4:
                 self.log("Shutting down")
                 self.stop()
             
-            time.sleep(self.interval())
+            sleep_interval = self.helper.interval()
+            self.log("Sleeping for %d seconds" % sleep_interval)
+            time.sleep(sleep_interval)
         
         self.log("Exited main loop")
     
