@@ -227,13 +227,46 @@
             "path": "./sites/wired.py",
             "name": "Wired",
             "class": "Wired",
-            "enabled": true,
+            "enabled": false,
             "keys": {
                 "url": "URL",
                 "title": "Title",
                 "rubric": "Rubric",
                 "author": "Author",
                 "author_url": "Author URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "slashdot": {
+            "path": "./sites/slashdot.py",
+            "name": "Slashdot",
+            "class": "Slashdot",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "department": "Department",
+                "datetime": "Date/Time",
+                "body": "Body",
+                "source_short": "Source (hostname)",
+                "source_url": "Source",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "the_register": {
+            "path": "./sites/the_register.py",
+            "name": "The Register",
+            "class": "TheRegister",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "standfirst": "Standfirst",
+                "section": "Section",
+                "timestamp": "Timestamp",
+                "comments": "Comments",
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
             }
