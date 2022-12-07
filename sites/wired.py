@@ -14,11 +14,11 @@ import time
 import traceback
 import hashlib
 
-class TheConversation:
+class Wired:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.url = "https://theconversation.com/uk"
+        self.url = "https://www.wired.co.uk/"
         self.page_scroll_interval = 0.05
     
     def interval(self):
@@ -33,7 +33,7 @@ class TheConversation:
         self.xdotool.size(1920, 1080)
 
         while self.driver != None:
-            self.log("Fetching The Conversation")
+            self.log("Fetching Wired")
 
             def navigate():
                 self.log("Navigating to page: %s" % (self.url))
@@ -41,10 +41,17 @@ class TheConversation:
 
             def wait_for_page_ready(interval):
                 self.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "page-wrapper")))
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "main-content")))
             
-            def check_cookie_disclaimer_2():
-                pass
+            def check_cookie_disclaimer():
+                try:
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#onetrust-accept-btn-handler")
+                    if len(consent_elements) > 0:
+                        self.log("Cookie disclaimer found")
+                        consent_elements[0].click()
+                        time.sleep(1)
+                except:
+                    self.log("Failed to find cookie disclaimer")
 
             def scroll_down_page():
                 self.log("Scrolling down the page")
@@ -101,15 +108,20 @@ class TheConversation:
                 
                 trim(im).save(file)
                 return True
-
+                
             def save_articles():
                 self.log("Saving articles")
-                
-                articles = self.driver.find_elements(By.CSS_SELECTOR, "article[data-id]")
+
+                self.driver.execute_script("document.querySelector('header').remove()")
+
+                articles = self.driver.find_elements(By.CSS_SELECTOR, ".summary-item")
 
                 for article in articles:
                     article_data = {}
-                    article_link_element = article.find_element(By.CSS_SELECTOR, "h2 > a")
+                    try:
+                        article_link_element = article.find_element(By.CSS_SELECTOR, "[data-component-title]")
+                    except:
+                        continue
                     article_data["url"] = article_link_element.get_attribute("href")
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
 
@@ -119,17 +131,25 @@ class TheConversation:
                         save_element_image(article, article_screenshot_paths["path"])
                         article_data["screenshot_url"] = article_screenshot_paths["url"]
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
-
-                        article_data["title"] = article_link_element.get_attribute("innerText")
                         try:
-                            article_data["summary"] = article.find_element(By.CSS_SELECTOR, ".content > span").get_attribute("innerText")
+                            article_data["title"] = article.find_element(By.CSS_SELECTOR, ".summary-item__hed").get_attribute("innerText")
+                        except:
+                            continue
+                        try:
+                            article_data["rubric"] = article.find_element(By.CSS_SELECTOR, ".summary-item__rubric").get_attribute("innerText")
+                        except:
+                            article_data["rubric"] = None
+                        try:
+                            article_data["summary"] = article.find_element(By.CSS_SELECTOR, ".summary-item__dek").get_attribute("innerText")
                         except:
                             article_data["summary"] = None
                         try:
-                            article_author_link = article.find_element(By.CSS_SELECTOR, ".byline")
-                            article_data["authors"] = article_author_link.get_attribute("innerText")
+                            article_byline = article.find_element(By.CSS_SELECTOR, ".byline__name a")
+                            article_data["author"] = article_byline.get_attribute("innerText")
+                            article_data["author_url"] = article_byline.get_attribute("href")
                         except:
-                            article_data["authors"] = None
+                            article_data["author"] = None
+                            article_data["author_url"] = None
 
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
@@ -140,7 +160,7 @@ class TheConversation:
             try:
                 navigate()
                 wait_for_page_ready(5)
-                #check_cookie_disclaimer_2()
+                check_cookie_disclaimer()
                 #wait_for_page_ready(5)
                 scroll_down_page()
                 save_articles()

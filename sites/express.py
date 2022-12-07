@@ -184,9 +184,6 @@ class Express:
                         except:
                             pass
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:

@@ -183,13 +183,55 @@
             "path": "./sites/standard.py",
             "name": "Standard",
             "class": "Standard",
-            "enabled": true,
+            "enabled": false,
             "keys": {
                 "url": "URL",
                 "title": "Title",
                 "section": "Section",
                 "section_url": "Section URL",
                 "lead": "Lead",
+                "author": "Author",
+                "author_url": "Author URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "the_conversation": {
+            "path": "./sites/the_conversation.py",
+            "name": "The Conversation",
+            "class": "TheConversation",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "summary": "summary",
+                "authors": "Authors",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "pinknews": {
+            "path": "./sites/pinknews.py",
+            "name": "PinkNews",
+            "class": "PinkNews",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "category": "Category",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "wired": {
+            "path": "./sites/wired.py",
+            "name": "Wired",
+            "class": "Wired",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "rubric": "Rubric",
                 "author": "Author",
                 "author_url": "Author URL",
                 "screenshot_url": "Screenshot URL",

@@ -132,9 +132,6 @@ class Metro:
                         article_data["section"] = current_section
                         article_data["section_url"] = current_section_url
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -169,9 +166,6 @@ class Metro:
                         except:
                             pass
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -204,9 +198,6 @@ class Metro:
                             article_data["summary"] = article.find_element(By.CSS_SELECTOR, "[data-track*='excerpt']").get_attribute("innerText")
                         except:
                             pass
-
-                        import json
-                        print(json.dumps(article_data, indent=4))
 
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
@@ -245,9 +236,6 @@ class Metro:
                         except:
                             pass
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -282,9 +270,6 @@ class Metro:
                         except:
                             pass
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -311,9 +296,6 @@ class Metro:
                         article_data["section_url"] = None
                         article_data["summary"] = None
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -339,9 +321,6 @@ class Metro:
                         article_data["section_url"] = None
                         article_data["summary"] = None
 
-                        import json
-                        print(json.dumps(article_data, indent=4))
-
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
@@ -366,9 +345,6 @@ class Metro:
                         article_data["section"] = "Columnists"
                         article_data["section_url"] = self.url
                         article_data["summary"] = None
-
-                        import json
-                        print(json.dumps(article_data, indent=4))
 
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
