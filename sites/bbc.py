@@ -17,7 +17,6 @@ class BBC:
         self.driver = None
         self.url = "https://www.bbc.co.uk/news/"
         self.categories = {}
-        self.page_scroll_interval = 0.05
 
     def start(self):
         self.setup_chromedriver()
@@ -34,28 +33,6 @@ class BBC:
             def wait_for_page_ready(interval):
                 self.helper.log("Waiting for page")
                 WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "orb-modules")))
-
-            def scroll_down_page():
-                self.log("Scrolling down the page")
-                page_height = self.driver.execute_script("return document.body.scrollHeight")
-                browser_height = self.driver.get_window_size()["height"]
-                last_scroll_y = 0
-                scroll_y = 0
-                scroll_attempts_failed = 0
-                self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
-                while True:
-                    if scroll_attempts_failed == 5:
-                        break
-                    self.xdotool.scroll_down()
-                    time.sleep(self.page_scroll_interval)
-                    scroll_y = self.driver.execute_script("return window.scrollY")
-                    self.log("scroll_y: %d" % (scroll_y))
-                    if scroll_y == last_scroll_y and scroll_y > browser_height:
-                        scroll_attempts_failed = scroll_attempts_failed + 1
-                        continue
-                    else:
-                        scroll_attempts_failed = 0
-                    last_scroll_y = scroll_y
             
             def check_cookie_disclaimer():
                 try:

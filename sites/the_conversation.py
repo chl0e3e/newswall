@@ -19,7 +19,6 @@ class TheConversation:
         self.helper = helper
         self.driver = None
         self.url = "https://theconversation.com/uk"
-        self.page_scroll_interval = 0.05
     
     def interval(self):
         return 30
@@ -45,28 +44,6 @@ class TheConversation:
             
             def check_cookie_disclaimer_2():
                 pass
-
-            def scroll_down_page():
-                self.log("Scrolling down the page")
-                page_height = self.driver.execute_script("return document.body.scrollHeight")
-                browser_height = self.driver.get_window_size()["height"]
-                last_scroll_y = 0
-                scroll_y = 0
-                scroll_attempts_failed = 0
-                self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
-                while True:
-                    if scroll_attempts_failed == 5:
-                        break
-                    self.xdotool.scroll_down()
-                    time.sleep(self.page_scroll_interval)
-                    scroll_y = self.driver.execute_script("return window.scrollY")
-                    self.log("scroll_y: %d" % (scroll_y))
-                    if scroll_y == last_scroll_y and scroll_y > browser_height:
-                        scroll_attempts_failed = scroll_attempts_failed + 1
-                        continue
-                    else:
-                        scroll_attempts_failed = 0
-                    last_scroll_y = scroll_y
 
             def save_element_image(element, file):
                 location = element.location_once_scrolled_into_view
@@ -142,7 +119,7 @@ class TheConversation:
                 wait_for_page_ready(5)
                 #check_cookie_disclaimer_2()
                 #wait_for_page_ready(5)
-                scroll_down_page()
+                self.helper.scroll_down_page()
                 save_articles()
             except Exception as e:
                 self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())

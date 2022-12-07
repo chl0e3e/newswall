@@ -5,6 +5,7 @@ import datetime
 import base64
 import threading
 import json
+import time
 
 from pymongo import MongoClient # sync mongodb
 
@@ -26,6 +27,7 @@ class Helper:
         self.name = name
         self.uc = None
         self.sync_mongodb_database = sync_mongodb_database
+        self.page_scroll_interval = 0.5
     
     def interval(self):
         return 30
@@ -40,6 +42,31 @@ class Helper:
             "path": image_path,
             "url": "/images/" + self.id + "/" + image_filename
         }
+
+    def scroll_down_page(self):
+        self.log("Scrolling down the page")
+        page_height = self.driver.execute_script("return document.body.scrollHeight")
+        browser_height = self.driver.get_window_size()["height"]
+        document_height = self.driver.execute_script("var body = document.body, html = document.documentElement; return Math.max( body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight );")
+        last_scroll_y = 0
+        scroll_y = 0
+        scroll_attempts_failed = 0
+        self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
+        while True:
+            if scroll_attempts_failed == 5:
+                break
+            self.xdotool.activate()
+            self.xdotool.scroll_down()
+            time.sleep(self.page_scroll_interval)
+            scroll_y = self.driver.execute_script("return window.scrollY")
+            self.log("scroll_y: %d" % (scroll_y))
+            window_height = self.driver.execute_script("return window.innerHeight")
+            if ((scroll_y + window_height) + 200) > document_height and scroll_y == last_scroll_y and scroll_y > browser_height:
+                scroll_attempts_failed = scroll_attempts_failed + 1
+                continue
+            else:
+                scroll_attempts_failed = 0
+            last_scroll_y = scroll_y
 
     def sync_uc(self, headless=False):
         if self.uc != None:
@@ -76,6 +103,9 @@ class Helper:
         self.sync_log("Navigated to window finder data URL")
         xdotool = XdotoolWrapper(display, window_uuid)
         self.sync_log("XdotoolWrapper created, window: %d" % (xdotool.window_id))
+
+        self.driver = driver
+        self.xdotool = xdotool
 
         return xdotool, driver
 

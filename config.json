@@ -259,7 +259,7 @@
             "path": "./sites/the_register.py",
             "name": "The Register",
             "class": "TheRegister",
-            "enabled": true,
+            "enabled": false,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -267,6 +267,56 @@
                 "section": "Section",
                 "timestamp": "Timestamp",
                 "comments": "Comments",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "hacker_news": {
+            "path": "./sites/hacker_news.py",
+            "name": "Hacker News",
+            "class": "HackerNews",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "age": "Age",
+                "score": "Score",
+                "user": "User",
+                "user_url": "User Profile",
+                "comments": "Comments",
+                "comments_url": "Comments URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "the_guardian": {
+            "path": "./sites/the_guardian.py",
+            "name": "The Guardian",
+            "class": "TheGuardian",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "headline": "Age",
+                "kicker": "Score",
+                "standfirst": "User",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "arstechnica": {
+            "path": "./sites/arstechnica.py",
+            "name": "Ars Technica",
+            "class": "ArsTechnica",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "excerpt": "Excerpt",
+                "date": "Date",
+                "comment_count": "Comment Count",
+                "author": "Author",
+                "author_url": "Author URL",
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
             }

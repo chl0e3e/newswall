@@ -7,18 +7,16 @@ from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image, ImageChops
 
 from io import BytesIO
-import base64
-import os
 import datetime
 import time
 import traceback
 import hashlib
 
-class Independent:
+class ArsTechnica:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.url = "https://www.independent.co.uk/"
+        self.url = "https://arstechnica.com/"
     
     def interval(self):
         return 30
@@ -32,7 +30,7 @@ class Independent:
         self.xdotool.size(1920, 1080)
 
         while self.driver != None:
-            self.log("Fetching Independent")
+            self.log("Fetching Ars Technica")
 
             def navigate():
                 self.log("Navigating to page: %s" % (self.url))
@@ -40,47 +38,16 @@ class Independent:
 
             def wait_for_page_ready(interval):
                 self.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "sectionContent")))
-
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "main")))
+            
             def check_cookie_disclaimer():
                 try:
-                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='SP Consent Message']")
-                    if len(consent_elements) > 0:
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#onetrust-accept-btn-handler")
+                    if consent_elements != None and len(consent_elements) > 0:
                         self.log("Cookie disclaimer found")
-                        self.driver.switch_to.frame(consent_elements[0])
-                        self.driver.find_element(By.CSS_SELECTOR, "[title='AGREE']").click()
-                        self.driver.switch_to.default_content()
-                        time.sleep(1)
+                        consent_elements[0].click()
                 except:
                     self.log("Failed to find cookie disclaimer")
-
-            def check_google_ad():
-                try:
-                    ad_frame_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='3rd party ad content']")
-                    if len(ad_frame_elements) > 0:
-                        self.log("Google ad found")
-                        self.driver.switch_to.frame(ad_frame_elements[0])
-                        self.driver.find_element(By.CSS_SELECTOR, "[role='button']").click()
-                        self.driver.switch_to.default_content()
-                        time.sleep(1)
-                except:
-                    self.log("Failed to find Google ad")
-
-            def check_subscribe_modal():
-                try:
-                    for i in range(10):
-                        self.xdotool.scroll_down()
-                        time.sleep(0.5)
-                    subscribe_modal = self.driver.find_elements(By.CSS_SELECTOR, ".tp-active iframe")
-                    print(len(subscribe_modal))
-                    if len(subscribe_modal) > 0:
-                        self.driver.switch_to.frame(subscribe_modal[0])
-                        self.driver.find_element(By.CSS_SELECTOR, ".pn-template__close").click()
-
-                    self.driver.switch_to.default_content()
-                    time.sleep(1)
-                except:
-                    self.log("Failed to close subscribe modal")
 
             def save_element_image(element, file):
                 location = element.location_once_scrolled_into_view
@@ -118,12 +85,16 @@ class Independent:
 
             def save_articles():
                 self.log("Saving articles")
-
-                articles = self.driver.find_elements(By.CSS_SELECTOR, ".article-default")
+                
+                articles = self.driver.find_elements(By.CSS_SELECTOR, "li.article")
 
                 for article in articles:
                     article_data = {}
-                    article_link_element = article.find_element(By.CSS_SELECTOR, ".title")
+                    article_link_element = None
+                    try:
+                        article_link_element = article.find_element(By.CSS_SELECTOR, "h2 > a")
+                    except:
+                        continue
                     article_data["url"] = article_link_element.get_attribute("href")
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
 
@@ -135,15 +106,13 @@ class Independent:
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
 
                         article_data["title"] = article_link_element.get_attribute("innerText")
-                        article_capsule = article.find_element(By.CSS_SELECTOR, "a.capsule")
-                        article_capsule_class = article_capsule.get_attribute("class")
-                        if "live-blog" in article_capsule_class:
-                            article_capsule = self.driver.execute_script("return arguments[0].nextSibling;", article_capsule)
-                        article_data["section"] = article_capsule.get_attribute("innerText")
-                        try:
-                            article_data["section_url"] = article_capsule.get_attribute("href")
-                        except:
-                            article_data["section_url"] = None
+                        article_data["excerpt"] = article.find_element(By.CSS_SELECTOR, ".excerpt").get_attribute("innerText")
+                        article_data["date"] = int(article.find_element(By.CSS_SELECTOR, "time").get_attribute("data-time"))
+                        article_data["comment_count"] = int(article.find_element(By.CSS_SELECTOR, ".comment-count-number").get_attribute("innerText"))
+                        
+                        article_byline_element = article.find_element(By.CSS_SELECTOR, ".byline > a")
+                        article_data["author"] = article_byline_element.get_attribute("innerText").strip()
+                        article_data["author_url"] = article_byline_element.get_attribute("href")
 
                         report = self.helper.sync_report(article_id, article_data)
                         self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
@@ -154,10 +123,10 @@ class Independent:
             try:
                 navigate()
                 wait_for_page_ready(5)
+                time.sleep(1)
                 check_cookie_disclaimer()
-                check_google_ad()
-                check_subscribe_modal()
-                self.helper.scroll_down_page()
+                #wait_for_page_ready(5)
+                #self.helper.scroll_down_page()
                 save_articles()
             except Exception as e:
                 self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
