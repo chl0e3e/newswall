@@ -6,25 +6,9 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             return socket.send(JSON.stringify(data));
         }
 
-        function setFilter(filter) {
-            window.filter = filter;
-            localStorage.setItem("filter", JSON.stringify(filter));
-            sendFilter();
-        }
-
-        function sendFilter() {
-            send({"cmd": "filter", "filter": window.filter});
-        }
-
-        function requestSites() {
-            send({"cmd": "sites"});
-        }
-        
-        //$("#tabs").tabs();
-
         socket.addEventListener("open", function (event) {
             console.log("Socket open");
-            requestSites();
+            send({"cmd": "sites"});
         });
 
         var queryBuilder;
@@ -34,7 +18,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         });
         
         $("#btn-query").on("click", function() {
-            if(typeof queryBuilder !== 'undefined') {
+            if(typeof queryBuilder !== "undefined") {
                 var query = queryBuilder.query();
                 console.log(query);
                 console.log(JSON.stringify(query));
@@ -82,13 +66,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         window.masonry = null;
         window.gridEnabled = true;
 
-        function tabSiteClick(e) {
-            var tabElement = $(e.target).closest(".nav-link");
-            var tabSiteID = tabElement.attr("data-site-id");
-
-            console.log(tabElement);
-            console.log(tabSiteID);
-
+        function destroy() {
             if (window.gridEnabled) {
                 window.gridElements.forEach(function(el) {
                     window.masonry.remove(el);
@@ -100,6 +78,31 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             }
 
             window.currentData = [];
+        }
+        
+        function tabAllClick(e) {
+            destroy();
+
+            var queryRules = [];
+
+            for (var site in window.sites) {
+                queryRules.push({"type":"rule","children":[],"filter":"site","operator":"equals","value":site});
+            }
+
+            send({
+                "cmd": "query",
+                "data": {"type":"root","children":queryRules}
+            });
+        }
+        $("#tab-all").on("click", tabAllClick);
+
+        function tabSiteClick(e) {
+            var tabElement = $(e.target).closest(".nav-link");
+            var tabSiteID = tabElement.attr("data-site-id");
+            $(".queried").removeClass("queried");
+            tabElement.addClass("queried");
+
+            destroy();
 
             send({
                 "cmd": "query",
@@ -131,7 +134,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                         .append($("<a></a>")
                             .attr("href", report.url)
                             .append($("<div></div>")
-                                .attr('class', 'image')
+                                .attr("class", "image")
                                 .append($("<img />")
                                     .attr("src", report.screenshot_url)
                                     .attr("alt", report.title)))
@@ -163,7 +166,8 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                 $("#wall").show();
                 window.masonry = new Masonry("#wall", {
                     itemSelector: "article",
-                    columnWidth: 80
+                    columnWidth: 10,
+                    horizontalOrder: true
                 });
                 readCurrentData();
             } else {
@@ -190,7 +194,9 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             const message = JSON.parse(event.data);
 
             if (message.cmd == "sites") {
-                if(typeof queryBuilder === 'undefined') {
+                if(typeof queryBuilder === "undefined") {
+                    window.sites = message.data;
+
                     for(var site in message.data) {
                         var siteData = message.data[site];
                         var tabImage = $("<img />")
