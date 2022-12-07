@@ -209,7 +209,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                             .attr("class", "tab")
                             .append(tabLink);
 
-                        tab.insertBefore($("#tab-query"));
+                        tab.insertAfter($("#tab-log"));
                     }
                     
                     queryBuilder = new SiteQueryBuilder("builder", message.data);
