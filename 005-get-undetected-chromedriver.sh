@@ -6,7 +6,7 @@ cd $SCRIPT_PATH
 
 VARS_DIR="$SCRIPT_PATH/.vars"
 
-UNDETECTED_CHROMEDRIVER_REPO="git@github.com:ultrafunkamsterdam/undetected-chromedriver.git"
+UNDETECTED_CHROMEDRIVER_REPO="https://github.com/ultrafunkamsterdam/undetected-chromedriver.git"
 
 CHROMEDRIVERS_PATH="$SCRIPT_PATH/chromedriver"
 UNDETECTED_CHROMEDRIVER_VERS_PATH="$SCRIPT_PATH/uc_versions"
@@ -21,7 +21,7 @@ echo "attempting to get undetected-chromedriver"
 echo ""
 
 echo "getting latest commit"
-UNDETECTED_CHROMEDRIVER_REPO_VER=$(git ls-remote "git@github.com:ultrafunkamsterdam/undetected-chromedriver.git" HEAD | cut -f1 -d$'\t')
+UNDETECTED_CHROMEDRIVER_REPO_VER=$(git ls-remote $UNDETECTED_CHROMEDRIVER_REPO HEAD | cut -f1 -d$'\t')
 echo "HEAD is at $UNDETECTED_CHROMEDRIVER_REPO_VER"
 
 echo "cloning remote repo"
