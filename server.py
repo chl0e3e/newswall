@@ -6,6 +6,7 @@ import datetime
 import re
 
 import motor.motor_asyncio # async mongodb
+from bson.objectid import ObjectId # used by motor
 
 from aiohttp import web, WSMsgType
 import aiohttp_jinja2
@@ -82,7 +83,7 @@ class NewsWall:
         async def send(data):
             await ws.send_str(json.dumps(data, default=str))
 
-        async def build_aggregation(data):
+        async def build_aggregation(data, pagination=None):
             aggregation = []
 
             if not data["type"] == "root":
@@ -197,6 +198,13 @@ class NewsWall:
 
                 aggregation.append(aggregate_union)
 
+            if pagination != None:
+                if not type(pagination) is dict:
+                    await self.async_log("Error building aggregate: pagination is not a dictionary")
+                    return aggregation
+                if "from" in pagination:
+                    aggregation.append({ "$match": { "_id": { "$lt": ObjectId(pagination["from"]) } } })
+
             return aggregation
 
         async for msg in ws:
@@ -213,32 +221,16 @@ class NewsWall:
 
                     if data["cmd"] == "query":
                         print("Received query")
-                        aggregation = await build_aggregation(data["data"])
+                        pagination = data["pagination"] if "pagination" in data else None
+                        aggregation = await build_aggregation(data["data"], pagination)
                         aggregation.append({ "$sort": { "_id" : -1} })
                         aggregation.append({ "$limit": 100 })
                         print(aggregation)
                         docs = []
                         async for doc in self.async_mongodb_database["empty"].aggregate(aggregation):
                             docs.append(doc)
-                        await ws.send_str(json.dumps({"cmd": "report", "report": docs}, default=str))
-                        
-                    if data["cmd"] == "filter" and "filter" in data:
-                        self.clients[ws] = data["filter"]
-                        aggregation = []
-                        sites = list(data["filter"].keys())
-                        first_site = sites.pop(0)
-                        for site in sites:
-                            aggregation.append({
-                                "$unionWith": site
-                            })
-
-                        aggregation.append({ "$sort": { "_id" : -1} })
-                        aggregation.append({ "$limit": 100 })
-
-                        docs = []
-                        async for doc in self.async_mongodb_database[first_site].aggregate(aggregation):
-                            docs.append(doc)
-                        await ws.send_str(json.dumps({"cmd": "report", "report": docs}, default=str))
+                        print(len(docs))
+                        await ws.send_str(json.dumps({"cmd": "report", "data": docs}, default=str))
 
     async def stop(self):
         await self.async_log("Shutting down asynchronous MongoDB client")

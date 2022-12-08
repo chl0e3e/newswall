@@ -19,13 +19,9 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         
         $("#btn-query").on("click", function() {
             if(typeof queryBuilder !== "undefined") {
-                var query = queryBuilder.query();
-                console.log(query);
-                console.log(JSON.stringify(query));
-                send({
-                    "cmd": "query",
-                    "data": query
-                });
+                destroy();
+                var queryResult = queryBuilder.query();
+                query(queryResult);
             } else {
                 alert("The query builder is not initialised.");
             }
@@ -65,6 +61,36 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         window.currentData = [];
         window.masonry = null;
         window.gridEnabled = true;
+        window.currentQuery = null;
+
+        function query(data, pagination={}) {
+            window.currentQuery = data;
+            console.log(data);
+
+            send({
+                "cmd": "query",
+                "data": data,
+                "pagination": pagination
+            });
+        }
+
+        window.addEventListener('scroll', function(e) {
+            var body = document.body, html = document.documentElement;
+
+            var top = (window.pageYOffset || html.scrollTop)  - (html.clientTop || 0); // https://stackoverflow.com/a/3464890
+
+            var height = Math.max( body.scrollHeight, body.offsetHeight, 
+                html.clientHeight, html.scrollHeight, html.offsetHeight ); // https://stackoverflow.com/a/1147768
+
+            if (top + document.body.clientHeight >= height) {
+                if(window.currentQuery != null) {
+                    var lastReport = window.currentData[window.currentData.length - 1];
+                    query(window.currentQuery, {
+                        "from": lastReport._id
+                    });
+                }
+            }
+        });
 
         function destroy() {
             if (window.gridEnabled) {
@@ -83,31 +109,28 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         function tabAllClick(e) {
             destroy();
 
+            $(".queried").removeClass("queried");
+            $(this).find(".nav-link").addClass("queried");
+
             var queryRules = [];
 
             for (var site in window.sites) {
                 queryRules.push({"type":"rule","children":[],"filter":"site","operator":"equals","value":site});
             }
 
-            send({
-                "cmd": "query",
-                "data": {"type":"root","children":queryRules}
-            });
+            query({"type":"root","children":queryRules});
         }
         $("#tab-all").on("click", tabAllClick);
 
         function tabSiteClick(e) {
+            destroy();
+
             var tabElement = $(e.target).closest(".nav-link");
             var tabSiteID = tabElement.attr("data-site-id");
             $(".queried").removeClass("queried");
             tabElement.addClass("queried");
 
-            destroy();
-
-            send({
-                "cmd": "query",
-                "data": {"type":"root","children":[{"type":"rule","children":[],"filter":"site","operator":"equals","value":tabSiteID}]}
-            });
+            query({"type":"root","children":[{"type":"rule","children":[],"filter":"site","operator":"equals","value":tabSiteID}]});
         }
 
         function readCurrentData() {
@@ -115,7 +138,12 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
 
             for(var reportIndex in window.currentData) {
                 let report = window.currentData[reportIndex];
+
                 if (window.gridEnabled) {
+                    if($("#grid_" + report._id).length > 0) {
+                        continue;
+                    }
+
                     let articleGridItem = $("<article></article>")
                         .attr("id", "grid_" + report._id)
                         .append($("<a></a>")
@@ -128,6 +156,10 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                     gridArticlesLoaded.push(articleGridItem[0]);
                     $("#wall").append(articleGridItem);
                 } else {
+                    if($("#list_" + report._id).length > 0) {
+                        continue;
+                    }
+
                     let articleListItem = $("<article></article>")
                         .attr("id", "list_" + report._id)
                         .attr("class", "collection-item")
@@ -141,7 +173,10 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                             .append($("<div></div>")
                                 .attr("class", "info")
                                 .append($("<h5></h5>")
-                                    .text(report.title))));
+                                    .text(report.title))
+                                .append($("<time></time>")
+                                    .attr("datetime", report.report_date)
+                                    .text(report.report_date))));
                     $("#list").append(articleListItem);
                 }
             }
@@ -223,7 +258,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                     queryBuilder.postRender();
                 }
             } else if(message.cmd == "report") {
-                window.currentData = message.report;
+                window.currentData = window.currentData.concat(message.data);
                 readCurrentData();
             } else if(message.cmd == "log") {
                 $("#log > table > tbody").append($("<tr></tr>")
