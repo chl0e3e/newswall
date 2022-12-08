@@ -97,8 +97,12 @@ class TheGuardian:
 
             def save_articles():
                 self.log("Saving articles")
-
-                self.driver.execute_script("document.querySelector('.site-message--banner').remove()")
+                
+                try:
+                    self.driver.execute_script("document.querySelector('.site-message--banner').remove()")
+                except:
+                    self.helper.log("Failed to remove banner")
+                    pass
                 
                 articles = self.driver.find_elements(By.CSS_SELECTOR, ".fc-item")
 

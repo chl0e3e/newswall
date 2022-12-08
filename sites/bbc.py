@@ -54,7 +54,7 @@ class BBC:
             
             def check_cookie_disclaimer_2():
                 try:
-                    consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".fc-button-label")
+                    consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".fc-cta-consent")
                     if len(consent_buttons) > 0:
                         consent_buttons[0].click()
                 except Exception as e:
@@ -103,6 +103,7 @@ class BBC:
                 return True
 
             def save_articles(category=None):
+
                 self.helper.log("Saving articles for '%s'" % ("Front Page" if category == None else category))
                 if category == None:
                     category_links = self.driver.find_elements(By.CSS_SELECTOR, "[aria-label='news'] .nw-o-link")
@@ -116,6 +117,11 @@ class BBC:
                             categories.append(category_url)
                 else:
                     self.driver.get(self.categories[category])
+
+                    wait_for_page_ready(self.helper.interval_page_ready())
+                    time.sleep(10)
+                    check_cookie_disclaimer()
+                    check_cookie_disclaimer_2()
 
                 promos = self.driver.find_elements(By.CSS_SELECTOR, ".gs-c-promo")
 
@@ -268,7 +274,9 @@ class BBC:
 
             try:
                 navigate()
+                    
                 wait_for_page_ready(self.helper.interval_page_ready())
+                time.sleep(10)
                 check_cookie_disclaimer()
                 check_cookie_disclaimer_2()
                 #time.sleep(2)
