@@ -44,6 +44,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             var tabLink = $("<a></a>")
                 .attr("class", "nav-link")
                 .attr("href", "#")
+                .attr("data-filter-name", name)
                 .click(function () {
                     destroy();
 
@@ -77,7 +78,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             addFilter(key);
         }
         
-        $("#btn-add-as-filter").on("click", function() {
+        $("#btn-save").on("click", function() {
             var filterName = $("#filter_name").val();
             var queryResult = queryBuilder.query();
             var filterExists = filterName in window.filters;
@@ -87,6 +88,17 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             }
             localStorage.setItem("filters", JSON.stringify(window.filters));
         });
+
+        $("#btn-remove").on("click", function() {
+            var filterName = $("#filter_name").val();
+            delete window.filters[filterName];
+            $("[data-filter-name]").each(function(){
+                if($(this).attr("data-filter-name") == filterName) {
+                    $(this).remove();
+                }
+            });
+            localStorage.setItem("filters", JSON.stringify(window.filters));
+        })
 
         $("#tab-query").on("click", function() {
             var querySection = $("#query");
@@ -118,15 +130,22 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             }
         });
 
-        function query(data, pagination={}) {
+        function query(data, pagination={}, feedCursor={}) {
             window.currentQuery = data;
             console.log(data);
 
-            send({
+            var queryCmdData = {
                 "cmd": "query",
-                "data": data,
-                "pagination": pagination
-            });
+                "data": data
+            }
+
+            if(Object.keys(pagination).length > 0) {
+                queryCmdData["pagination"] = pagination;
+            } else if(Object.keys(feedCursor).length > 0) {
+                queryCmdData["feed_cursor"] = feedCursor;
+            }
+
+            send(queryCmdData);
         }
 
         window.addEventListener('scroll', function(e) {
@@ -191,12 +210,10 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             query({"type":"root","children":[{"type":"rule","children":[],"filter":"site","operator":"equals","value":tabSiteID}]});
         }
 
-        function readCurrentData() {
+        function readCurrentData(prepend=false) {
             let gridArticlesLoaded = [];
-
             for(var reportIndex in window.currentData) {
                 let report = window.currentData[reportIndex];
-                console.log(report);
                 if (window.gridEnabled) {
                     if(document.getElementById("grid_" + report._id) != null && window.gridElements.length > 0) {
                         continue;
@@ -212,7 +229,12 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
 
                     articleGridItem.css("display", "none");
                     gridArticlesLoaded.push(articleGridItem[0]);
-                    $("#wall").append(articleGridItem);
+
+                    if(prepend) {
+                        $("#wall").prepend(articleGridItem);
+                    } else {
+                        $("#wall").append(articleGridItem);
+                    }
                 } else {
                     if($("#list_" + report._id).length > 0) {
                         continue;
@@ -254,7 +276,12 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                                     .attr("src", report.screenshot_url)
                                     .attr("alt", report.title)))
                             .append(articleListItemInfo));
-                    $("#list").append(articleListItem);
+
+                    if(prepend) {
+                        $("#list").prepend(articleListItem);
+                    } else {
+                        $("#list").append(articleListItem);
+                    }
                 }
             }
 
@@ -262,7 +289,11 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                 window.imagesLoaded($("#wall")[0], function() {
                     for (var articleGridIndex in gridArticlesLoaded) {
                         let articleGridItem = gridArticlesLoaded[articleGridIndex];
-                        masonry.appended(articleGridItem);
+                        if(prepend) {
+                            masonry.prepended(articleGridItem);
+                        } else {
+                            masonry.appended(articleGridItem);
+                        }
                         window.gridElements.push(articleGridItem);
                     }
 
@@ -301,6 +332,14 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             window.gridEnabled = !window.gridEnabled;
             grid(window.gridEnabled);
         });
+        
+        setInterval(function () {
+            if(window.currentQuery != null && window.currentData.length > 0) {
+                query(window.currentQuery, {}, {
+                    "from": window.currentData[0]._id
+                });
+            }
+        }, 10000);
 
         socket.addEventListener("message", function (event) {
             const message = JSON.parse(event.data);
@@ -336,18 +375,18 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                 }
             } else if(message.cmd == "report") {
                 console.log("report");
-                console.log(message.data);
-                window.currentData = window.currentData.concat(message.data);
-                readCurrentData();
+                if(message.prepend) {
+                    window.currentData = message.data.concat(window.currentData);
+                } else {
+                    window.currentData = window.currentData.concat(message.data);
+                }
+                readCurrentData(message.prepend);
             } else if(message.cmd == "log") {
-                $("#log > table > tbody").append($("<tr></tr>")
-                    .append($("<th></th>")
-                        .attr("scope", "row")
-                        .text(message.log.date))
-                    .append($("<td></td>")
-                        .text(message.log.source))
-                    .append($("<td></td>")
-                        .text(message.log.text)))
+                for (var logIndex in message.data) {
+                    var logLine = message.data[logIndex];
+                    
+                    log("[" + logLine.date + "] [" + logLine.source + "] " + logLine.text);
+                }
             }
         });
     });

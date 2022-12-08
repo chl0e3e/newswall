@@ -43,6 +43,58 @@ class NewsWall:
             sites[site] = site_config
         return sites
 
+    async def log_task(self):
+        cursor = self.async_mongodb_database.log.find().sort([('_id', -1)])
+        self.logs_buffer = await cursor.to_list(length=100)
+        self.logs_buffer.reverse()
+            
+        while self.running:
+            first_log_line_id = self.logs_buffer[0]['_id']
+            cursor = self.async_mongodb_database.log.find({'_id': {'$gt': first_log_line_id}}).sort([('_id', -1)])
+            temp_logs_buffer = await cursor.to_list(length=100)
+            temp_logs_buffer.reverse()
+
+            for log_line in temp_logs_buffer:
+                self.logs_buffer.pop(0)
+                self.logs_buffer.insert(0, log_line)
+
+            if len(temp_logs_buffer) > 0:
+                clients = list(self.clients.keys())
+                for client in clients:
+                    try:
+                        await client.send_str(json.dumps({"cmd": "log", "data": temp_logs_buffer}, default=str))
+                    except:
+                        try:
+                            del self.clients[client]
+                        except:
+                            pass
+
+            await asyncio.sleep(1)
+
+    async def query_watch_task(self):
+        cursor = self.async_mongodb_database.log.find().sort([('_id', -1)])
+        self.logs_buffer = await cursor.to_list(length=100)
+        self.logs_buffer.reverse()
+            
+        while self.running:
+            first_log_line_id = self.logs_buffer[0]['_id']
+            cursor = self.async_mongodb_database.log.find({'_id': {'$gt': first_log_line_id}}).sort([('_id', -1)])
+            temp_logs_buffer = await cursor.to_list(length=100)
+            temp_logs_buffer.reverse()
+
+            for log_line in temp_logs_buffer:
+                self.logs_buffer.pop(0)
+                self.logs_buffer.insert(0, log_line)
+
+            if len(temp_logs_buffer) > 0:
+                for client in self.clients.keys():
+                    try:
+                        await client.send_str(json.dumps({"cmd": "log", "data": temp_logs_buffer}, default=str))
+                    except:
+                        del self.clients[client]
+
+            await asyncio.sleep(10)
+
     async def start(self):
         self.running = True
         config = await self.config()
@@ -55,6 +107,8 @@ class NewsWall:
         self.app = web.Application()
         self.app.add_routes(self.routes())
         aiohttp_jinja2.setup(self.app, loader=jinja2.FileSystemLoader(get_build_folder("templates")))
+
+        asyncio.create_task(self.log_task())
 
         await web._run_app(self.app)
 
@@ -83,7 +137,7 @@ class NewsWall:
         async def send(data):
             await ws.send_str(json.dumps(data, default=str))
 
-        async def build_aggregation(data, pagination=None):
+        async def build_aggregation(data, pagination=None, feed_cursor=None):
             aggregation = []
 
             if not data["type"] == "root":
@@ -204,33 +258,42 @@ class NewsWall:
                     return aggregation
                 if "from" in pagination:
                     aggregation.append({ "$match": { "_id": { "$lt": ObjectId(pagination["from"]) } } })
+            elif feed_cursor != None:
+                if not type(feed_cursor) is dict:
+                    await self.async_log("Error building aggregate: feed cursor is not a dictionary")
+                    return aggregation
+                if "from" in feed_cursor:
+                    aggregation.append({ "$match": { "_id": { "$gt": ObjectId(feed_cursor["from"]) } } })
 
             return aggregation
 
-        async for msg in ws:
-            if msg.type == WSMsgType.TEXT:
-                data = json.loads(msg.data)
-                print(msg.data)
-                if "cmd" in data:
-                    if data["cmd"] == "sites":
-                        sites = await self.sites()
-                        await send({
-                            "cmd": "sites",
-                            "data": sites
-                        })
+        await send({"cmd": "log", "data": self.logs_buffer})
 
-                    if data["cmd"] == "query":
-                        print("Received query")
-                        pagination = data["pagination"] if "pagination" in data else None
-                        aggregation = await build_aggregation(data["data"], pagination)
-                        aggregation.append({ "$sort": { "_id" : -1} })
-                        aggregation.append({ "$limit": 100 })
-                        print(aggregation)
-                        docs = []
-                        async for doc in self.async_mongodb_database["empty"].aggregate(aggregation):
-                            docs.append(doc)
-                        print(len(docs))
-                        await ws.send_str(json.dumps({"cmd": "report", "data": docs}, default=str))
+        try:
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    data = json.loads(msg.data)
+                    print(msg.data)
+                    if "cmd" in data:
+                        if data["cmd"] == "sites":
+                            sites = await self.sites()
+                            await send({
+                                "cmd": "sites",
+                                "data": sites
+                            })
+
+                        if data["cmd"] == "query":
+                            pagination = data["pagination"] if "pagination" in data else None
+                            feed_cursor = data["feed_cursor"] if "feed_cursor" in data else None
+                            aggregation = await build_aggregation(data["data"], pagination, feed_cursor)
+                            aggregation.append({ "$sort": { "_id" : -1} })
+                            aggregation.append({ "$limit": 100 })
+                            docs = []
+                            async for doc in self.async_mongodb_database["empty"].aggregate(aggregation):
+                                docs.append(doc)
+                            await ws.send_str(json.dumps({"cmd": "report", "data": docs, "prepend": feed_cursor != None}, default=str))
+        except:
+            del self.clients[ws]
 
     async def stop(self):
         await self.async_log("Shutting down asynchronous MongoDB client")

@@ -315,7 +315,7 @@
             "name": "The Guardian",
             "class": "TheGuardian",
             "logo": "/static/img/the_guardian.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -331,7 +331,7 @@
             "name": "Ars Technica",
             "class": "ArsTechnica",
             "logo": "/static/img/ars_technica.svg",
-            "enabled": true,
+            "enabled": false,
             "keys": {
                 "url": "URL",
                 "title": "Title",
