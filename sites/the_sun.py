@@ -25,11 +25,21 @@ class TheSun:
         return self.helper.sync_log(message, exception=exception)
 
     def start(self):
-        self.setup_chromedriver()
-        self.xdotool.activate()
-        self.xdotool.size(1920, 1080)
+        while True:
+            try:
+                self.helper.log("Setting up chromedriver")
+                self.setup_chromedriver()
+                self.xdotool.activate()
+                self.xdotool.size("100%", "100%")
+            except Exception as e:
+                exception_str = traceback.format_exc()
+                self.helper.log("Failed during setup", exception=exception_str)
+                if self.driver != None:
+                    self.driver.quit()
+                    self.driver = None
+                time.sleep(30)
+                continue
 
-        while self.driver != None:
             self.log("Fetching The Sun")
 
             def navigate():
@@ -136,7 +146,7 @@ class TheSun:
 
             try:
                 navigate()
-                wait_for_page_ready(5)
+                wait_for_page_ready(self.helper.interval_page_ready())
                 check_cookie_disclaimer()
                 self.helper.scroll_down_page()
                 save_articles()

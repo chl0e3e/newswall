@@ -15,6 +15,8 @@ import uc
 
 from xdotool import XdotoolWrapper
 
+from xvfbwrapper import Xvfb
+
 from buildutil import get_build_var, get_build_folder, get_config_path, get_build_root
 
 chromedriver_path = get_build_var("chromedriver")
@@ -30,9 +32,15 @@ class Helper:
         self.uc = None
         self.sync_mongodb_database = sync_mongodb_database
         self.page_scroll_interval = 0.5
+
+        self.vdisplay = Xvfb(width=1920, height=1080)
+        self.vdisplay.start()
     
     def interval(self):
         return 3600 + random.randrange(-900, 900)
+    
+    def interval_page_ready(self):
+        return random.randrange(30, 120)
 
     def get_image_path(self, id, ext="png"):
         site_images_folder = os.path.join(images_folder, self.id)
@@ -80,10 +88,7 @@ class Helper:
             options.headless = True
             options.add_argument('--headless')
 
-        # vdisplay = Xvfb(display=self.display_number)
-        # vdisplay.start()
-
-        display = "172.20.32.1:0.0"
+        display = (":%d" % self.vdisplay.new_display)
 
         profile_dir = os.path.join(profiles_folder, self.id)
         driver = uc.Chrome(options=options,
@@ -180,6 +185,7 @@ if __name__ == "__main__":
         print("No scrapers configured, aborting.")
         sys.exit(4)
 
+    display_number = 20
     threads = []
     for site_id, site_config in sites:
         if not "name" in site_config:
@@ -218,6 +224,8 @@ if __name__ == "__main__":
         thread = threading.Thread(target=module_obj.start, args=[])
         threads.append(thread)
         thread.start()
+
+        display_number += 1
 
     if len(threads) == 0:
         print("No scrapers started, aborting.")

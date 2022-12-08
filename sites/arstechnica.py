@@ -17,37 +17,41 @@ class ArsTechnica:
         self.helper = helper
         self.driver = None
         self.url = "https://arstechnica.com/"
-    
-    def interval(self):
-        return 30
-
-    def log(self, message, exception=None):
-        return self.helper.sync_log(message, exception=exception)
 
     def start(self):
-        self.setup_chromedriver()
-        self.xdotool.activate()
-        self.xdotool.size(1920, 1080)
+        while True:
+            try:
+                self.helper.log("Setting up chromedriver")
+                self.setup_chromedriver()
+                self.xdotool.activate()
+                self.xdotool.size("100%", "100%")
+            except Exception as e:
+                exception_str = traceback.format_exc()
+                self.helper.log("Failed during setup", exception=exception_str)
+                if self.driver != None:
+                    self.driver.quit()
+                    self.driver = None
+                time.sleep(30)
+                continue
 
-        while self.driver != None:
-            self.log("Fetching Ars Technica")
+            self.helper.log("Fetching Ars Technica")
 
             def navigate():
-                self.log("Navigating to page: %s" % (self.url))
+                self.helper.log("Navigating to page: %s" % (self.url))
                 self.driver.get(self.url)
 
             def wait_for_page_ready(interval):
-                self.log("Waiting for page")
+                self.helper.log("Waiting for page")
                 WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "main")))
             
             def check_cookie_disclaimer():
                 try:
                     consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#onetrust-accept-btn-handler")
                     if consent_elements != None and len(consent_elements) > 0:
-                        self.log("Cookie disclaimer found")
+                        self.helper.log("Cookie disclaimer found")
                         consent_elements[0].click()
                 except:
-                    self.log("Failed to find cookie disclaimer")
+                    self.helper.log("Failed to find cookie disclaimer")
 
             def save_element_image(element, file):
                 location = element.location_once_scrolled_into_view
@@ -84,7 +88,7 @@ class ArsTechnica:
                 return True
 
             def save_articles():
-                self.log("Saving articles")
+                self.helper.log("Saving articles")
                 
                 articles = self.driver.find_elements(By.CSS_SELECTOR, "li.article")
 
@@ -115,29 +119,29 @@ class ArsTechnica:
                         article_data["author_url"] = article_byline_element.get_attribute("href")
 
                         report = self.helper.sync_report(article_id, article_data)
-                        self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
+                        self.helper.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
                         self.helper.sync_insert_presence(article_db_obj.get('_id'), datetime.datetime.utcnow())
-                        self.log("Inserted presence into %s" % article_id)
+                        self.helper.log("Inserted presence into %s" % article_id)
 
             try:
                 navigate()
-                wait_for_page_ready(5)
+                wait_for_page_ready(self.helper.interval_page_ready())
                 time.sleep(1)
                 check_cookie_disclaimer()
-                #wait_for_page_ready(5)
+                #wait_for_page_ready(self.helper.interval_page_ready())
                 #self.helper.scroll_down_page()
                 save_articles()
             except Exception as e:
-                self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
-                self.log("Shutting down")
+                self.helper.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
+                self.helper.log("Shutting down")
                 self.stop()
             
             sleep_interval = self.helper.interval()
-            self.log("Sleeping for %d seconds" % sleep_interval)
+            self.helper.log("Sleeping for %d seconds" % sleep_interval)
             time.sleep(sleep_interval)
         
-        self.log("Exited main loop")
+        self.helper.log("Exited main loop")
     
     def stop(self):
         if self.driver != None:
@@ -145,7 +149,7 @@ class ArsTechnica:
             self.driver = None
     
     def setup_chromedriver(self):
-        self.log("Initialising a new Chrome instance")
+        self.helper.log("Initialising a new Chrome instance")
 
         if self.driver != None:
             self.stop()

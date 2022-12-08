@@ -19,11 +19,21 @@ class BBC:
         self.categories = {}
 
     def start(self):
-        self.setup_chromedriver()
-        self.xdotool.activate()
-        self.xdotool.size(1920, 1080)
+        while True:
+            try:
+                self.helper.log("Setting up chromedriver")
+                self.setup_chromedriver()
+                self.xdotool.activate()
+                self.xdotool.size("100%", "100%")
+            except Exception as e:
+                exception_str = traceback.format_exc()
+                self.helper.log("Failed during setup", exception=exception_str)
+                if self.driver != None:
+                    self.driver.quit()
+                    self.driver = None
+                time.sleep(30)
+                continue
 
-        while self.driver != None:
             self.helper.log("Fetching BBC")
 
             def navigate():
@@ -39,7 +49,8 @@ class BBC:
                     consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, "#bbccookies-continue-button")
                     consent_buttons[0].click()
                 except Exception as e:
-                    self.helper.log("Failed to find cookie disclaimer", exception=traceback.format_exc())
+                    exception_str = traceback.format_exc()
+                    self.helper.log("Failed to find cookie disclaimer", exception=exception_str)
 
             def save_element_image(element, file):
                 if element.size['width'] > 0 or element.size['height'] > 0:
@@ -239,7 +250,7 @@ class BBC:
 
             try:
                 navigate()
-                wait_for_page_ready(5)
+                wait_for_page_ready(self.helper.interval_page_ready())
                 check_cookie_disclaimer()
                 #time.sleep(2)
                 #check_subscribe_modal()
