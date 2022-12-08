@@ -290,7 +290,7 @@ class BBC:
                 self.stop()
             
             sleep_interval = self.helper.interval()
-            self.log("Sleeping for %d seconds" % sleep_interval)
+            self.helper.log("Sleeping for %d seconds" % sleep_interval)
             time.sleep(sleep_interval)
         
         self.helper.log("Exited main loop")
