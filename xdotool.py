@@ -17,7 +17,7 @@ class XdotoolWrapper:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             close_fds=True,
-            env=self.xdotool_env
+            #env=self.xdotool_env
         )
 
     def activate(self):
