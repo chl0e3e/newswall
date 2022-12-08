@@ -10,6 +10,7 @@ define(["jquery", "xterm", "xterm.fit"], function($, xterm, XTERM_FIT) {
             //rows: 5000
         });
         term.open($("#log-container")[0]);
+        term.writeln("Terminal initialised.");
     });
     return function(line) {
         term.writeln(line);

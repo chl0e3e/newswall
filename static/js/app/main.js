@@ -54,6 +54,8 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                 })
                 .text(name)
                 .on('contextmenu', function(e) {
+                    $(this).click();
+                    $("#tab-query .nav-link").addClass("slide-active");
                     e.preventDefault();
                     var querySection = $("#query");
                     if(querySection.hasClass("hidden")) {
@@ -89,10 +91,12 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         $("#tab-query").on("click", function() {
             var querySection = $("#query");
             if(querySection.hasClass("hidden")) {
+                $("#tab-query .nav-link").addClass("slide-active");
                 querySection.slideDown( "fast", function() {
                     querySection.removeClass("hidden");
                 });
             } else {
+                $("#tab-query .nav-link").removeClass("slide-active");
                 querySection.slideUp( "fast", function() {
                     querySection.addClass("hidden");
                 });
@@ -102,10 +106,12 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         $("#tab-log").on("click", function() {
             var logSection = $("#log");
             if(logSection.hasClass("hidden")) {
+                $("#tab-log .nav-link").addClass("slide-active");
                 logSection.slideDown( "fast", function() {
                     logSection.removeClass("hidden");
                 });
             } else {
+                $("#tab-log .nav-link").removeClass("slide-active");
                 logSection.slideUp( "fast", function() {
                     logSection.addClass("hidden");
                 });
