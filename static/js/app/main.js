@@ -13,7 +13,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             window.filters = JSON.parse(window.filters);
         }
 
-        const socket = new WebSocket("ws://localhost:8080/main");
+        const socket = new WebSocket("ws://" + location.host + ":8080/main");
 
         function send(data) {
             return socket.send(JSON.stringify(data));
