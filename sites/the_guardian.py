@@ -61,6 +61,17 @@ class TheGuardian:
                 except:
                     self.log("Failed to find cookie disclaimer")
 
+            def check_cookie_disclaimer_2():
+                try:
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='The Guardian consent message']")
+                    if consent_elements != None and len(consent_elements) > 0:
+                        self.log("Cookie disclaimer found")
+                        self.driver.switch_to.frame(consent_elements[0])
+                        self.driver.find_element(By.CSS_SELECTOR, "[title='Yes, I’m happy']").click()
+                        self.driver.switch_to.default_content()
+                except:
+                    self.log("Failed to find cookie disclaimer")
+
             def save_element_image(element, file):
                 location = element.location_once_scrolled_into_view
                 png = self.driver.get_screenshot_as_png() # saves screenshot of entire page
@@ -148,6 +159,8 @@ class TheGuardian:
                 wait_for_page_ready(self.helper.interval_page_ready())
                 time.sleep(1)
                 check_cookie_disclaimer()
+                check_cookie_disclaimer_2()
+                time.sleep(5)
                 #wait_for_page_ready(self.helper.interval_page_ready())
                 #self.helper.scroll_down_page()
                 save_articles()
