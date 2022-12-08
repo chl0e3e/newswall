@@ -51,6 +51,15 @@ class BBC:
                 except Exception as e:
                     exception_str = traceback.format_exc()
                     self.helper.log("Failed to find cookie disclaimer", exception=exception_str)
+            
+            def check_cookie_disclaimer_2():
+                try:
+                    consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".fc-button-label")
+                    if len(consent_buttons) > 0:
+                        consent_buttons[0].click()
+                except Exception as e:
+                    exception_str = traceback.format_exc()
+                    self.helper.log("Failed to find cookie disclaimer 2", exception=exception_str)
 
             def save_element_image(element, file):
                 if element.size['width'] > 0 or element.size['height'] > 0:
@@ -252,6 +261,7 @@ class BBC:
                 navigate()
                 wait_for_page_ready(self.helper.interval_page_ready())
                 check_cookie_disclaimer()
+                check_cookie_disclaimer_2()
                 #time.sleep(2)
                 #check_subscribe_modal()
                 #time.sleep(2)
