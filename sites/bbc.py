@@ -61,9 +61,12 @@ class BBC:
                     exception_str = traceback.format_exc()
                     self.helper.log("Failed to find cookie disclaimer 2", exception=exception_str)
 
-            def save_element_image(element, file):
+            def save_element_image_2(element, file):
                 if element.size['width'] > 0 or element.size['height'] > 0:
                     element.screenshot(file)
+                    return True
+                else:
+                    return False
 
             def save_element_image(element, file):
                 location = element.location_once_scrolled_into_view
@@ -202,7 +205,13 @@ class BBC:
                             article_data["screenshot_url"] = article_screenshot_paths["url"]
                             article_data["screenshot_path"] = article_screenshot_paths["path"]
                         else:
-                            self.helper.log("Failed to save article image %s" % (article_data["url"]))
+                            self.helper.log("Failed to save article image using first method %s" % (article_data["url"]))
+                            article_screenshot_saved = save_element_image_2(article, article_screenshot_paths["path"])
+                            if article_screenshot_saved:
+                                article_data["screenshot_url"] = article_screenshot_paths["url"]
+                                article_data["screenshot_path"] = article_screenshot_paths["path"]
+                            else:
+                                self.helper.log("Failed to save article image using second method %s" % (article_data["url"]))
 
                         article_data["title"] = article_title
                         
