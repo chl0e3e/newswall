@@ -7,6 +7,7 @@ import threading
 import json
 import time
 import sys
+import random
 
 from pymongo import MongoClient # sync mongodb
 
@@ -31,7 +32,7 @@ class Helper:
         self.page_scroll_interval = 0.5
     
     def interval(self):
-        return 30
+        return 3600 + random.randrange(-900, 900)
 
     def get_image_path(self, id, ext="png"):
         site_images_folder = os.path.join(images_folder, self.id)
@@ -52,15 +53,16 @@ class Helper:
         last_scroll_y = 0
         scroll_y = 0
         scroll_attempts_failed = 0
-        self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
+        #self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
         while True:
             if scroll_attempts_failed == 5:
+                self.log("Scrolling stopped, %d %d %d %d" % (scroll_y, page_height, document_height, browser_height))
                 break
             self.xdotool.activate()
             self.xdotool.scroll_down()
             time.sleep(self.page_scroll_interval)
             scroll_y = self.driver.execute_script("return window.scrollY")
-            self.log("scroll_y: %d" % (scroll_y))
+            #self.log("scroll_y: %d" % (scroll_y))
             window_height = self.driver.execute_script("return window.innerHeight")
             if ((scroll_y + window_height) + 200) > document_height and scroll_y == last_scroll_y and scroll_y > browser_height:
                 scroll_attempts_failed = scroll_attempts_failed + 1
