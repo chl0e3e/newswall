@@ -51,6 +51,7 @@
             "enabled": false,
             "keys": {
                 "url": "URL",
+                "title": "Title",
                 "headline": "Headline",
                 "tagline": "Tagline",
                 "section": "Section",
@@ -219,7 +220,7 @@
             "keys": {
                 "url": "URL",
                 "title": "Title",
-                "summary": "summary",
+                "summary": "Summary",
                 "authors": "Authors",
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"

@@ -35,7 +35,7 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
             console.log("Root");
             this.id = id;
             this.siteData = siteData;
-            this.group = new RootGroup(this, uuidv4());
+            this.group = new RootGroup(this, uuidv4(), []);
             this.html = $("<div></div>")
                 .attr("id", this.id)
                 .attr("class", "query-builder");
@@ -487,6 +487,7 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
     return class SiteQueryBuilder {
         constructor(id, siteData) {
             this.id = id;
+            this.siteData = siteData;
             this.root = new Root(id, siteData);
 
             var self = this;
@@ -526,6 +527,75 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
             }
 
             return traverse(this.root.group);
+        }
+
+        reset() {
+            for (var rootRuleKey in this.root.group.children) {
+                var rootRule = this.root.group.children[rootRuleKey];
+                rootRule.html.remove();
+                this.root.group.remove(rootRule)
+            }
+        }
+
+        load(data) {
+            this.reset();
+            
+            var self = this;
+            function traverse(data, parent, filters) {
+                var oopNode;
+
+                console.log(data);
+                
+                if(data["type"] == "group") {
+                    oopNode = new Group(parent, uuidv4(), filters);
+                } else if(parent instanceof RootGroup) {
+                    oopNode = new RootRule(parent, uuidv4(), []);
+                } else if(data["type"] == "rule") {
+                    oopNode = new Rule(parent, uuidv4(), filters);
+                }
+
+                if (oopNode instanceof Rule) {
+                    oopNode.filter.val(data["filter"]);
+                    oopNode.operator.val(data["operator"]);
+                    oopNode.value.val(data["value"]);
+                } else if (oopNode instanceof Group) {
+                    if(data["condition"] == "AND") {
+                        oopNode.andButtonRadio.prop('checked', true);
+                        oopNode.orButtonRadio.prop('checked', false);
+                    } else {
+                        oopNode.orButtonRadio.prop('checked', true);
+                        oopNode.andButtonRadio.prop('checked', false);
+                    }
+                }
+
+                for(var nodeKey in data.children) {
+                    var node = data.children[nodeKey];
+                    var oopChildNode;
+                    if(parent instanceof RootGroup) {
+                        oopChildNode = traverse(node, oopNode, self.siteData[oopNode.value.val()]["keys"]);
+                    } else {
+                        oopChildNode = traverse(node, oopNode, filters);
+                    }
+
+                    if(oopNode instanceof Rule) {
+                        oopNode.childrenEl.append(oopChildNode.render());
+                    } else if(oopNode instanceof Group) {
+                        oopNode.rulesList.append(oopChildNode.render());
+                    }
+
+                    oopNode.children.push(oopChildNode);
+                }
+
+                return oopNode;
+            }
+
+            for(var nodeKey in data.children) {
+                var node = data.children[nodeKey];
+                var oopNode = traverse(node, this.root.group, []);
+                this.root.group.children.push(oopNode);
+                this.root.group.rulesList.append(oopNode.render());
+                initMaterialize(oopNode.html);
+            }
         }
     }
 });

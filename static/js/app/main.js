@@ -1,5 +1,18 @@
 define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize", "log"], function($, Masonry, imagesLoaded, SiteQueryBuilder, materialize, log) {
     $(function() {
+        window.gridElements = [];
+        window.currentData = [];
+        window.masonry = null;
+        window.gridEnabled = true;
+        window.currentQuery = null;
+        window.filters = localStorage.getItem('filters');
+
+        if (localStorage.getItem("filters") === null) {
+            window.filters = {};
+        } else {
+            window.filters = JSON.parse(window.filters);
+        }
+
         const socket = new WebSocket("ws://localhost:8080/main");
 
         function send(data) {
@@ -14,7 +27,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         var queryBuilder;
 
         $("#btn-reset").on("click", function() {
-
+            queryBuilder.reset();
         });
         
         $("#btn-query").on("click", function() {
@@ -26,9 +39,51 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                 alert("The query builder is not initialised.");
             }
         });
+
+        function addFilter(name) {
+            var tabLink = $("<a></a>")
+                .attr("class", "nav-link")
+                .attr("href", "#")
+                .click(function () {
+                    destroy();
+
+                    $(".queried").removeClass("queried");
+                    $(this).addClass("queried");
+
+                    query(window.filters[name]);
+                })
+                .text(name)
+                .on('contextmenu', function(e) {
+                    e.preventDefault();
+                    var querySection = $("#query");
+                    if(querySection.hasClass("hidden")) {
+                        querySection.slideDown( "fast", function() {
+                            querySection.removeClass("hidden");
+                        });
+                    }
+                    queryBuilder.load(window.filters[name]);
+                    $("#filter_name").val(name);
+                });
+            var tab = $("<li></li>")
+                .attr("class", "tab")
+                .append(tabLink);
+            tab.insertAfter($("#tab-all"));
+            return tab;
+        }
+
+        for(var key in window.filters) {
+            addFilter(key);
+        }
         
         $("#btn-add-as-filter").on("click", function() {
-
+            var filterName = $("#filter_name").val();
+            var queryResult = queryBuilder.query();
+            var filterExists = filterName in window.filters;
+            window.filters[filterName] = queryResult;
+            if (!filterExists) {
+                addFilter(filterName);
+            }
+            localStorage.setItem("filters", JSON.stringify(window.filters));
         });
 
         $("#tab-query").on("click", function() {
@@ -56,12 +111,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                 });
             }
         });
-
-        window.gridElements = [];
-        window.currentData = [];
-        window.masonry = null;
-        window.gridEnabled = true;
-        window.currentQuery = null;
 
         function query(data, pagination={}) {
             window.currentQuery = data;
@@ -94,11 +143,14 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
 
         function destroy() {
             if (window.gridEnabled) {
-                window.gridElements.forEach(function(el) {
-                    window.masonry.remove(el);
-                });
-                window.masonry.layout();
-                window.gridElements = [];
+                if(window.masonry != null) {
+                    let temp = window.gridElements;
+                    window.gridElements = [];
+                    temp.forEach(function(el) {
+                        window.masonry.remove(el);
+                    });
+                    window.masonry.layout();
+                }
             } else {
                 $("#list article").remove();
             }
@@ -138,9 +190,9 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
 
             for(var reportIndex in window.currentData) {
                 let report = window.currentData[reportIndex];
-
+                console.log(report);
                 if (window.gridEnabled) {
-                    if($("#grid_" + report._id).length > 0) {
+                    if(document.getElementById("grid_" + report._id) != null && window.gridElements.length > 0) {
                         continue;
                     }
 
@@ -160,6 +212,31 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                         continue;
                     }
 
+                    const detailsFilters = [
+                        "summary",
+                        "excerpt",
+                        "description",
+                        "body"
+                    ];
+
+                    let articleListItemInfo = $("<div></div>")
+                        .attr("class", "info")
+                        .append($("<h5></h5>")
+                            .text(report.title))
+                        .append($("<time></time>")
+                            .attr("datetime", report.report_date)
+                            .text(report.report_date));
+                    
+                    for(var detailFilterKey in detailsFilters) {
+                        let detailFilter = detailsFilters[detailFilterKey];
+                        if (detailFilter in report) {
+                            let detail = $("<p></p>")
+                                .text(report[detailFilter]);
+                            articleListItemInfo.append(detail);
+                            break;
+                        }
+                    }
+
                     let articleListItem = $("<article></article>")
                         .attr("id", "list_" + report._id)
                         .attr("class", "collection-item")
@@ -170,13 +247,7 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                                 .append($("<img />")
                                     .attr("src", report.screenshot_url)
                                     .attr("alt", report.title)))
-                            .append($("<div></div>")
-                                .attr("class", "info")
-                                .append($("<h5></h5>")
-                                    .text(report.title))
-                                .append($("<time></time>")
-                                    .attr("datetime", report.report_date)
-                                    .text(report.report_date))));
+                            .append(articleListItemInfo));
                     $("#list").append(articleListItem);
                 }
             }
@@ -258,6 +329,8 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                     queryBuilder.postRender();
                 }
             } else if(message.cmd == "report") {
+                console.log("report");
+                console.log(message.data);
                 window.currentData = window.currentData.concat(message.data);
                 readCurrentData();
             } else if(message.cmd == "log") {

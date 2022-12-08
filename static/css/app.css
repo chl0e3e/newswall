@@ -1,6 +1,6 @@
 @import "query-builder.css";
 @import "materialize.min.css";
-@import "xterm.min.css";
+@import "xterm.css";
 
 body {
     width: 100vw;
@@ -329,4 +329,26 @@ body {
 #list > article > a > .image:hover > img {
     max-width: 1000px;
     transition: .5s max-width;
+}
+
+#list > article > a {
+    color: black;
+}
+
+#list > article > a > .info > h5 {
+    margin-top: 0;
+    font-weight: bold;
+}
+
+.input-field-filter-name {
+    display: inline-block;
+    margin: 0;
+}
+
+.input-field.input-field-filter-name > label {
+    left: 0;
+}
+
+.pull-right {
+    float: right;
 }
