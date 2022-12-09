@@ -113,7 +113,7 @@ class MacRumors:
                         article_date_element = article.find_element(By.CSS_SELECTOR, "time")
                         article_data["date"] = article_date_element.get_attribute("datetime")
                         article_data["date_human"] = article_date_element.get_attribute("innerText")
-                        article_data["comment_count"] = article.find_element(By.CSS_SELECTOR, "[href*='forums.']").get_attribute("innerText")
+                        article_data["comment_count"] = article.find_element(By.CSS_SELECTOR, "[class*='footer'] [href*='forums.']").get_attribute("innerText")
                         
                         article_byline_element = article.find_element(By.CSS_SELECTOR, "[rel='author']")
                         article_data["author"] = article_byline_element.get_attribute("innerText").strip()

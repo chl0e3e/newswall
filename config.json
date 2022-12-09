@@ -379,6 +379,23 @@
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
             }
+        },
+        "wsj": {
+            "path": "./sites/wsj.py",
+            "name": "Wall Street Journal",
+            "class": "WallStreetJournal",
+            "logo": "/static/img/wsj.svg",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "summary": "Summary",
+                "mins_to_read": "Minutes to Read",
+                "comment_count": "Comment Count",
+                "comment_url": "Comment URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
         }
     }
 }

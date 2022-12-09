@@ -220,7 +220,7 @@ def main():
     sync_mongodb_database = sync_mongodb_client[config_file["database_name"]]
 
     def log(line):
-        log_line = {"date": datetime.datetime.utcnow(), "source": "main", "text": line}
+        log_line = {"date": datetime.datetime.utcnow(), "source": "scrapers", "text": line}
 
         log_id = sync_mongodb_database["log"].insert_one(log_line).inserted_id
         log_line["_id"] = log_id
