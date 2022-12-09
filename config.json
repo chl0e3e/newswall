@@ -7,7 +7,7 @@
             "name": "BBC News",
             "class": "BBC",
             "logo": "/static/img/bbc.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -31,7 +31,7 @@
             "name": "The Daily Mail",
             "class": "TheDailyMail",
             "logo": "/static/img/dailymail.gif",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -48,7 +48,7 @@
             "name": "The Sun",
             "class": "TheSun",
             "logo": "/static/img/the_sun.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -67,7 +67,7 @@
             "name": "The Telegraph",
             "class": "TheTelegraph",
             "logo": "/static/img/the_telegraph.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -85,7 +85,7 @@
             "name": "Independent",
             "class": "Independent",
             "logo": "/static/img/independent.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -100,7 +100,7 @@
             "name": "Mirror",
             "class": "Mirror",
             "logo": "/static/img/mirror.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -115,7 +115,7 @@
             "name": "Express",
             "class": "Express",
             "logo": "/static/img/express.png",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -131,7 +131,7 @@
             "name": "Metro",
             "class": "Metro",
             "logo": "/static/img/metro.png",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -147,7 +147,7 @@
             "name": "Channel 4 News",
             "class": "Channel4",
             "logo": "/static/img/channel4.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -163,7 +163,7 @@
             "name": "Reach",
             "class": "Reach",
             "logo": "/static/img/reach.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -182,7 +182,7 @@
             "name": "Huffington Post",
             "class": "HuffingtonPost",
             "logo": "/static/img/huffpost.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -198,7 +198,7 @@
             "name": "Standard",
             "class": "Standard",
             "logo": "/static/img/standard.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -216,7 +216,7 @@
             "name": "The Conversation",
             "class": "TheConversation",
             "logo": "/static/img/the_conversation.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -231,7 +231,7 @@
             "name": "PinkNews",
             "class": "PinkNews",
             "logo": "/static/img/pinknews.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -245,7 +245,7 @@
             "name": "Wired",
             "class": "Wired",
             "logo": "/static/img/wired.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -261,7 +261,7 @@
             "name": "Slashdot",
             "class": "Slashdot",
             "logo": "/static/img/slashdot.PNG",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -279,7 +279,7 @@
             "name": "The Register",
             "class": "TheRegister",
             "logo": "/static/img/the_register.PNG",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -296,7 +296,7 @@
             "name": "Hacker News",
             "class": "HackerNews",
             "logo": "/static/img/hacker_news.PNG",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -331,7 +331,7 @@
             "name": "Ars Technica",
             "class": "ArsTechnica",
             "logo": "/static/img/ars_technica.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -349,7 +349,7 @@
             "name": "Associated Press",
             "class": "AssociatedPress",
             "logo": "/static/img/associated_press.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
@@ -366,7 +366,7 @@
             "name": "MacRumors",
             "class": "MacRumors",
             "logo": "/static/img/macrumors.svg",
-            "enabled": false,
+            "enabled": true,
             "keys": {
                 "url": "URL",
                 "title": "Title",
