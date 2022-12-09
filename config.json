@@ -396,6 +396,26 @@
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
             }
+        },
+        "techcrunch": {
+            "path": "./sites/techcrunch.py",
+            "name": "TechCrunch",
+            "class": "TechCrunch",
+            "logo": "/static/img/techcrunch.svg",
+            "enabled": true,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "summary": "Summary",
+                "date": "Date",
+                "date_human": "Date (human-readable)",
+                "author": "Author",
+                "author_url": "Author URL",
+                "category": "category",
+                "category_url": "Category URL",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
         }
     }
 }

@@ -7,30 +7,16 @@ from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image, ImageChops
 
 from io import BytesIO
-import base64
-import os
 import datetime
 import time
 import traceback
 import hashlib
 
-class Reach:
+class TechCrunch:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.urls = {
-            "https://www.mylondon.news/": "MyLondon",
-            "https://www.manchestereveningnews.co.uk/": "Manchester Evening News",
-            "https://www.staffordshire-live.co.uk/": "Staffordshire Live",
-            "https://www.birminghammail.co.uk/": "Birmingham Mail",
-            "https://www.hulldailymail.co.uk/": "Hull Live"
-        }
-    
-    def interval(self):
-        return 30
-
-    def log(self, message, exception=None):
-        return self.helper.sync_log(message, exception=exception)
+        self.url = "https://techcrunch.com/"
 
     def start(self):
         while True:
@@ -48,37 +34,24 @@ class Reach:
                 time.sleep(30)
                 continue
 
-            self.log("Fetching Reach sites")
+            self.helper.log("Fetching TechCrunch")
 
-            def navigate(url):
-                self.log("Navigating to page: %s" % (url))
-                self.driver.get(url)
+            def navigate():
+                self.helper.log("Navigating to page: %s" % (self.url))
+                self.driver.get(self.url)
 
             def wait_for_page_ready(interval):
-                self.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.CLASS_NAME, "mod-pancakes")))
-
+                self.helper.log("Waiting for page")
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#consent-page, #root")))
+            
             def check_cookie_disclaimer():
                 try:
-                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#qc-cmp2-main [mode='primary']")
-                    if len(consent_elements) > 0:
-                        self.log("Cookie disclaimer found")
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#consent-page [value='agree']")
+                    if consent_elements != None and len(consent_elements) > 0:
+                        self.helper.log("Cookie disclaimer found")
                         consent_elements[0].click()
-                        time.sleep(1)
                 except:
-                    self.log("Failed to find cookie disclaimer")
-
-            def check_google_login_popup():
-                try:
-                    login_elements = self.driver.find_elements(By.CSS_SELECTOR, "[title='Sign in with Google Dialogue']")
-                    if len(login_elements) > 0:
-                        self.log("Google sign in popup found")
-                        self.driver.switch_to.frame(login_elements[0])
-                        self.driver.find_element(By.CSS_SELECTOR, "#close").click()
-                        self.driver.switch_to.default_content()
-                        time.sleep(1)
-                except:
-                    self.log("Failed to find Google sign in popup")
+                    self.helper.log("Failed to find cookie disclaimer")
 
             def save_element_image(element, file):
                 location = element.location_once_scrolled_into_view
@@ -114,17 +87,16 @@ class Reach:
                 trim(im).save(file)
                 return True
 
-            def save_articles(site_url, site_name):
-                self.log("Saving articles")
-
-                self.driver.execute_script("document.querySelector('header').remove()")
-
-                articles = self.driver.find_elements(By.CSS_SELECTOR, ".teaser")
+            def save_articles():
+                self.helper.log("Saving articles")
+                
+                articles = self.driver.find_elements(By.CSS_SELECTOR, ".mini-view__item, .feature-island-main-block, article.post-block")
 
                 for article in articles:
                     article_data = {}
+                    article_link_element = None
                     try:
-                        article_link_element = article.find_element(By.CSS_SELECTOR, ".headline")
+                        article_link_element = article.find_element(By.CSS_SELECTOR, "a")
                     except:
                         continue
                     article_data["url"] = article_link_element.get_attribute("href")
@@ -138,50 +110,59 @@ class Reach:
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
 
                         article_data["title"] = article_link_element.get_attribute("innerText")
-                        article_data["site_url"] = site_url
-                        article_data["site_name"] = site_name
                         try:
-                            article_data["description"] = article.find_element(By.CSS_SELECTOR, ".description").get_attribute("innerText")
+                            article_time_element = article.find_element(By.CSS_SELECTOR, "time")
+                            article_data["date"] = article_time_element.get_attribute("datetime")
+                            article_data["date_human"] = article_time_element.get_attribute("innerText")
                         except:
-                            article_data["description"] = None
+                            article_data["date"] = None
+                            article_data["date"] = None
+                        
                         try:
-                            article_data["comments"] = article.find_element(By.CSS_SELECTOR, ".vf-comments-count").get_attribute("innerText")
+                            article_byline_element = article.find_element(By.CSS_SELECTOR, "[class*='__byline'] a")
+                            article_data["author"] = article_byline_element.get_attribute("innerText").strip()
+                            article_data["author_url"] = article_byline_element.get_attribute("href")
                         except:
-                            article_data["comments"] = None
+                            article_byline_element = article.find_element(By.CSS_SELECTOR, "[class*='byline__authors'] a")
+                            article_data["author"] = article_byline_element.get_attribute("innerText").strip()
+                            article_data["author_url"] = article_byline_element.get_attribute("href")
+
                         try:
-                            article_label_element = article.find_element(By.CSS_SELECTOR, ".label")
-                            article_data["section"] = article_label_element.get_attribute("innerText")
-                            article_data["section_url"] = article_label_element.get_attribute("href")
+                            article_category_element = article.find_element(By.CSS_SELECTOR, "a[class*='category__link']")
+                            article_data["category"] = article_category_element.get_attribute("innerText").strip()
+                            article_data["category_url"] = article_category_element.get_attribute("href")
                         except:
-                            article_data["section"] = None
-                            article_data["section_url"] = None
+                            article_data["category"] = None
+                            article_data["category_url"] = None
+
+                        try:
+                            article_data["summary"] = article.find_element(By.CSS_SELECTOR, ".post-block__content").get_attribute("innerText")
+                        except:
+                            article_data["summary"] = None
 
                         report = self.helper.sync_report(article_id, article_data)
-                        self.log("Inserted report %s: %s" % (article_id, report.inserted_id))
+                        self.helper.log("Inserted report %s: %s" % (article_id, report.inserted_id))
                     else:
                         self.helper.sync_insert_presence(article_db_obj.get('_id'), datetime.datetime.utcnow())
-                        self.log("Inserted presence into %s" % article_id)
+                        self.helper.log("Inserted presence into %s" % article_id)
 
             try:
-                for url, name in self.urls.items():
-                    self.log ("Fetching %s" % url)
-                    navigate(url)
-                    wait_for_page_ready(self.helper.interval_page_ready())
-                    check_google_login_popup()
-                    check_cookie_disclaimer()
-                    self.helper.scroll_down_page()
-                    save_articles(url, name)
+                navigate()
+                wait_for_page_ready(self.helper.interval_page_ready())
+                time.sleep(1)
+                check_cookie_disclaimer()
+                #wait_for_page_ready(self.helper.interval_page_ready())
+                #self.helper.scroll_down_page()
+                save_articles()
             except Exception as e:
-                self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
-                self.log("Shutting down")
+                self.helper.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
+                self.helper.log("Shutting down")
             finally:
                 self.stop()
             
             sleep_interval = self.helper.interval()
-            self.log("Sleeping for %d seconds" % sleep_interval)
+            self.helper.log("Sleeping for %d seconds" % sleep_interval)
             time.sleep(sleep_interval)
-        
-        self.log("Exited main loop")
     
     def stop(self):
         if self.driver != None:
@@ -189,7 +170,7 @@ class Reach:
             self.driver = None
     
     def setup_chromedriver(self):
-        self.log("Initialising a new Chrome instance")
+        self.helper.log("Initialising a new Chrome instance")
 
         if self.driver != None:
             self.stop()
