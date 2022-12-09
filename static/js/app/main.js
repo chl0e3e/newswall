@@ -7,6 +7,13 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         window.currentQuery = null;
         window.filters = localStorage.getItem('filters');
 
+        let gridLS = localStorage.getItem("grid");
+        if (gridLS === null) {
+            window.gridEnabled = true;
+        } else {
+            window.gridEnabled = JSON.parse(gridLS);
+        }
+
         if (localStorage.getItem("filters") === null) {
             window.filters = {};
         } else {
@@ -328,12 +335,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             }
         }
 
-        let gridLS = localStorage.getItem("grid");
-        if (gridLS == null) {
-            window.gridEnabled = true;
-        } else {
-            window.gridEnabled = JSON.parse(gridLS);
-        }
         grid(window.gridEnabled);
 
         $("#btn-change-view").on("click", function(e) {
