@@ -28,7 +28,7 @@ class AssociatedPress:
             except Exception as e:
                 exception_str = traceback.format_exc()
                 self.helper.log("Failed during setup", exception=exception_str)
-                self.stop()
+                self.helper.stop()
                 time.sleep(30)
                 continue
 
@@ -275,23 +275,17 @@ class AssociatedPress:
                 self.helper.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
                 self.helper.log("Shutting down")
             finally:
-                self.stop()
+                self.helper.stop()
             
             sleep_interval = self.helper.interval()
             self.helper.log("Sleeping for %d seconds" % sleep_interval)
             time.sleep(sleep_interval)
     
-    def stop(self):
-        self.helper.kill_9_browser_and_driver()
-        if self.driver != None:
-            self.driver.quit()
-            self.driver = None
-    
     def setup_chromedriver(self):
         self.helper.log("Initialising a new Chrome instance")
 
         if self.driver != None:
-            self.stop()
+            self.helper.stop()
             
         xdotool, driver = self.helper.sync_uc()
         self.driver = driver

@@ -39,13 +39,9 @@ class Helper:
         self.page_scroll_interval = 0.5
         self.mode = mode
         self.disable_xvfb = disable_xvfb
-
-        if not self.disable_xvfb:
-            self.vdisplay = Xvfb(width=1920, height=1080)
-            self.vdisplay.start()
     
     def interval(self):
-        return 3600 + random.randrange(-900, 1800)
+        return random.randrange(0, 3600)
     
     def interval_page_ready(self):
         return random.randrange(30, 120)
@@ -64,7 +60,13 @@ class Helper:
             "url": "/images/" + self.id + "/" + image_filename
         }
 
-    def kill_9_browser_and_driver(self):
+    def stop(self):
+        if not self.disable_xvfb:
+            try:
+                self.vdisplay.stop()
+            except:
+                pass
+
         if self.mode == "multiprocessing":
             current_process = psutil.Process()
             children = current_process.children(recursive=True)
@@ -93,6 +95,10 @@ class Helper:
                 os.kill(self.driver.service.process.pid, 9)
             except:
                 pass
+        try:
+            self.driver.quit()
+        except:
+            pass
 
     def scroll_down_page(self, scrolls=1):
         self.log("Scrolling down the page")
@@ -145,6 +151,8 @@ class Helper:
 
         if not self.disable_xvfb:
             display = (":%d" % self.vdisplay.new_display)
+            self.vdisplay = Xvfb(width=1920, height=1080)
+            self.vdisplay.start()
         elif "DISPLAY" in os.environ:
             display = os.environ["DISPLAY"]
         else:
@@ -314,12 +322,18 @@ def main():
         module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.mode, args.disable_xvfb)
         module_obj = module_class(module_helper)
 
+        def delayed_start():
+            delayed_start_secs = module_helper.interval()
+            log("Delaying start for %s by %d seconds" % (site_id, delayed_start_secs))
+            time.sleep(delayed_start_secs)
+            module_obj.start()
+
         if args.mode == "threading":
-            thread = threading.Thread(target=module_obj.start, args=[])
+            thread = threading.Thread(target=delayed_start, args=[])
             threads.append(thread)
             thread.start()
         elif args.mode == "multiprocessing":
-            process = Process(target=module_obj.start, args=())
+            process = Process(target=delayed_start, args=())
             processes.append(process)
             process.start()
         else:
