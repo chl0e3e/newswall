@@ -149,6 +149,7 @@ class TheRegister:
             except Exception as e:
                 self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
                 self.log("Shutting down")
+            finally:
                 self.stop()
             
             sleep_interval = self.helper.interval()

@@ -135,6 +135,7 @@ class ArsTechnica:
             except Exception as e:
                 self.helper.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())
                 self.helper.log("Shutting down")
+            finally:
                 self.stop()
             
             sleep_interval = self.helper.interval()
