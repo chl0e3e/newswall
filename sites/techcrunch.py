@@ -96,7 +96,7 @@ class TechCrunch:
                     article_data = {}
                     article_link_element = None
                     try:
-                        article_link_element = article.find_element(By.CSS_SELECTOR, "a")
+                        article_link_element = article.find_element(By.CSS_SELECTOR, "h2>a, h3>a")
                     except:
                         continue
                     article_data["url"] = article_link_element.get_attribute("href")
