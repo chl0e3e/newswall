@@ -8,6 +8,7 @@ import json
 import time
 import sys
 import random
+import argparse
 
 from pymongo import MongoClient # sync mongodb
 
@@ -25,22 +26,29 @@ config_path = get_config_path()
 profiles_folder = get_build_folder("profiles")
 images_folder = get_build_folder("images")
 
+verbose = False
+
 class Helper:
-    def __init__(self, id, name, sync_mongodb_database):
+    def __init__(self, id, name, sync_mongodb_database, disable_xvfb):
         self.id = id
         self.name = name
         self.uc = None
         self.sync_mongodb_database = sync_mongodb_database
         self.page_scroll_interval = 0.5
+        self.disable_xvfb = disable_xvfb
 
-        self.vdisplay = Xvfb(width=1920, height=1080)
-        self.vdisplay.start()
+        if not self.disable_xvfb:
+            self.vdisplay = Xvfb(width=1920, height=1080)
+            self.vdisplay.start()
     
     def interval(self):
         return 3600 + random.randrange(-900, 900)
     
     def interval_page_ready(self):
         return random.randrange(30, 120)
+    
+    def interval_page_scroll(self):
+        return 0.25
 
     def get_image_path(self, id, ext="png"):
         site_images_folder = os.path.join(images_folder, self.id)
@@ -61,22 +69,33 @@ class Helper:
         last_scroll_y = 0
         scroll_y = 0
         scroll_attempts_failed = 0
+        scroll_attempts_failed_override = 0
         #self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
         while True:
             if scroll_attempts_failed == 5:
                 self.log("Scrolling stopped, %d %d %d %d" % (scroll_y, page_height, document_height, browser_height))
                 break
+            if scroll_attempts_failed_override == 20:
+                self.log("Scrolling aborted after 100 attempts (too slow?)")
+                break
             self.xdotool.activate()
             self.xdotool.scroll_down()
-            time.sleep(self.page_scroll_interval)
+            time.sleep(self.interval_page_scroll())
             scroll_y = self.driver.execute_script("return window.scrollY")
             #self.log("scroll_y: %d" % (scroll_y))
             window_height = self.driver.execute_script("return window.innerHeight")
+            if last_scroll_y == scroll_y:
+                scroll_attempts_failed_override += 1
+                continue
+            else:
+                scroll_attempts_failed_override = 0
+
             if ((scroll_y + window_height) + 200) > document_height and scroll_y == last_scroll_y and scroll_y > browser_height:
                 scroll_attempts_failed = scroll_attempts_failed + 1
                 continue
             else:
                 scroll_attempts_failed = 0
+
             last_scroll_y = scroll_y
 
     def sync_uc(self, headless=False):
@@ -86,9 +105,14 @@ class Helper:
         options = uc.ChromeOptions()
         if headless:
             options.headless = True
-            options.add_argument('--headless')
+            options.add_argument("--headless")
 
-        display = (":%d" % self.vdisplay.new_display)
+        if not self.disable_xvfb:
+            display = (":%d" % self.vdisplay.new_display)
+        elif "DISPLAY" in os.environ:
+            display = os.environ["DISPLAY"]
+        else:
+            display = ":0"
 
         profile_dir = os.path.join(profiles_folder, self.id)
         driver = uc.Chrome(options=options,
@@ -154,10 +178,31 @@ def import_site(path):
     spec.loader.exec_module(site)
     return site
 
-if __name__ == "__main__":
+def args_parser():
+    parser = argparse.ArgumentParser(
+                    prog = "newswall Scrapers",
+                    description = "This program starts threads for scrapers and provides functions for reporting them to a MongoDB instance.",
+                    epilog = "Text at the bottom of help")
+
+    parser.add_argument("config_path", action="store", type=str, default=config_path, help="Path to the configuration file to load and use")
+    parser.add_argument("-m", "--mode", dest="mode", action="store", type=str, default="config", help="Run the scrapers in a different mode (single = single site mode, config = config mode)")
+    parser.add_argument("-s", "--site", dest="site", action="store", type=str, default="", help="Site to run and scrape (single-site mode only)")
+    parser.add_argument("-x", "--disable-xvfb", dest="disable_xvfb", action="store_true", default=False, help="Disable headless Xvfb and use DISPLAY from script environment")
+    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=True)
+
+    return parser
+
+def main():
+    parser = args_parser()
+    args = parser.parse_args()
+
+    if args.mode != "single" and args.mode != "config":
+        parser.print_help()
+        return
+
     print("Attempting to load configuration file")
     config_file = None
-    with open(config_path) as f:
+    with open(args.config_path) as f:
         config_file = json.load(f)
     if config_file == None:
         print("Failed to load configuration file from %s" % config_path)
@@ -175,37 +220,50 @@ if __name__ == "__main__":
     print("Attempting to connect to MongoDB synchronously")
     sync_mongodb_client = MongoClient(config_file["database_url"])
     sync_mongodb_database = sync_mongodb_client[config_file["database_name"]]
+
+    def log(line):
+        log_line = {"date": datetime.datetime.utcnow(), "source": "main", "text": line}
+
+        log_id = sync_mongodb_database["log"].insert_one(log_line).inserted_id
+        log_line["_id"] = log_id
+        
+        if args.verbose:
+            print("[%s] [%s] %s" % (log_line["source"], log_line["date"], line))
+
     info = sync_mongodb_client.server_info()
-    print("Application connected to MongoDB (%s) synchronously" % (info["version"]))
+    log("Application connected to MongoDB (%s) synchronously" % (info["version"]))
     
     sites = config_file["sites"].items()
-    print("Loaded %d sites" % (len(sites)))
+    log("Loaded %d sites" % (len(sites)))
 
     if len(sites) == 0:
-        print("No scrapers configured, aborting.")
+        log("No scrapers configured, aborting.")
         sys.exit(4)
 
-    display_number = 20
     threads = []
+    use_threads = args.mode == "config"
     for site_id, site_config in sites:
+        if args.mode == "single" and site_id != args.site:
+            continue
+
         if not "name" in site_config:
-            print("Configuration for site '%s' does not contain a name" % (site_id))
+            log("Configuration for site '%s' does not contain a name" % (site_id))
             continue
 
         if not "enabled" in site_config:
-            print("Configuration for site '%s' does not have an 'enabled' property" % (site_id))
+            log("Configuration for site '%s' does not have an 'enabled' property" % (site_id))
             continue
 
         if not "path" in site_config:
-            print("Configuration for site '%s' does not have a valid path" % (site_id))
+            log("Configuration for site '%s' does not have a valid path" % (site_id))
             continue
         
         if not "class" in site_config:
-            print("Configuration for site '%s' does not specify what class to start" % (site_id))
+            log("Configuration for site '%s' does not specify what class to start" % (site_id))
             continue
 
-        if not site_config["enabled"]:
-            print("Site '%s' is disabled" % (site_id))
+        if not site_config["enabled"] and args.mode == "config":
+            log("Site '%s' is disabled" % (site_id))
             continue
         
         if not ".py" in site_config["path"]:
@@ -213,27 +271,32 @@ if __name__ == "__main__":
 
         site_path = os.path.join(get_build_root(), site_config["path"])
         if not os.path.exists(site_path):
-            print("Site '%s' cannot be found at %s" % (site_id, site_path))
+            log("Site '%s' cannot be found at %s" % (site_id, site_path))
             continue
         module = import_site(site_path)
 
         module_class = getattr(module, site_config["class"])
-        module_helper = Helper(site_id, site_config["name"], sync_mongodb_database)
+        module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.disable_xvfb)
         module_obj = module_class(module_helper)
 
-        thread = threading.Thread(target=module_obj.start, args=[])
-        threads.append(thread)
-        thread.start()
+        if use_threads:
+            thread = threading.Thread(target=module_obj.start, args=[])
+            threads.append(thread)
+            thread.start()
+        else:
+            module_obj.start()
 
-        display_number += 1
+    if use_threads:
+        if len(threads) == 0:
+            log("No scrapers started, aborting.")
+            sys.exit(5)
 
-    if len(threads) == 0:
-        print("No scrapers started, aborting.")
-        sys.exit(5)
-
-    print("All site threads started")
-    for thread in threads:
-        thread.join()    
+        log("All site threads started")
+        for thread in threads:
+            thread.join()    
     
-    print("Shutting down synchronous MongoDB client")
+    log("Shutting down synchronous MongoDB client")
     sync_mongodb_client.close()
+
+if __name__ == "__main__":
+    main()
