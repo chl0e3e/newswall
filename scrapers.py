@@ -315,7 +315,9 @@ def main():
         module_obj = module_class(module_helper)
 
         def delayed_start():
-            time.sleep(module_helper.interval())
+            delay_start_interval = random.randrange(0, 600)
+            module_helper.log("Delaying process start for %d seconds" % (delay_start_interval))
+            time.sleep(delay_start_interval)
             module_obj.start()
 
         if args.mode == "threading":
