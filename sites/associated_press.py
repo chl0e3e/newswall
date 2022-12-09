@@ -28,9 +28,7 @@ class AssociatedPress:
             except Exception as e:
                 exception_str = traceback.format_exc()
                 self.helper.log("Failed during setup", exception=exception_str)
-                if self.driver != None:
-                    self.driver.quit()
-                    self.driver = None
+                self.stop()
                 time.sleep(30)
                 continue
 
@@ -206,7 +204,6 @@ class AssociatedPress:
                 articles = self.driver.find_elements(By.CSS_SELECTOR, ".FeedCard[data-card-id][data-key]")
                 for article in articles:
                     article_data = {}
-                    print(article.get_attribute("outerHTML"))
                     article_link_element = article.find_element(By.CSS_SELECTOR, "a[data-key='card-headline']")
                     article_data["url"] = article_link_element.get_attribute("href")
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
@@ -285,6 +282,7 @@ class AssociatedPress:
             time.sleep(sleep_interval)
     
     def stop(self):
+        self.helper.kill_9_browser_and_driver()
         if self.driver != None:
             self.driver.quit()
             self.driver = None

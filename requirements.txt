@@ -9,3 +9,4 @@ aiohttp_jinja2
 xvfbwrapper
 Pillow
 aiofiles
+psutil

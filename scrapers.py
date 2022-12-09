@@ -9,6 +9,8 @@ import time
 import sys
 import random
 import argparse
+import psutil
+from multiprocessing import Process
 
 from pymongo import MongoClient # sync mongodb
 
@@ -29,12 +31,13 @@ images_folder = get_build_folder("images")
 verbose = False
 
 class Helper:
-    def __init__(self, id, name, sync_mongodb_database, disable_xvfb):
+    def __init__(self, id, name, sync_mongodb_database, mode, disable_xvfb):
         self.id = id
         self.name = name
         self.uc = None
         self.sync_mongodb_database = sync_mongodb_database
         self.page_scroll_interval = 0.5
+        self.mode = mode
         self.disable_xvfb = disable_xvfb
 
         if not self.disable_xvfb:
@@ -60,6 +63,36 @@ class Helper:
             "path": image_path,
             "url": "/images/" + self.id + "/" + image_filename
         }
+
+    def kill_9_browser_and_driver(self):
+        if self.mode == "multiprocessing":
+            current_process = psutil.Process()
+            children = current_process.children(recursive=True)
+            for child in children:
+                self.log("Killing pid %d" % child.pid)
+                try:
+                    os.kill(child.pid, 9)
+                except:
+                    pass
+            return
+
+        if getattr(self, "driver") == None:
+            return
+
+        if self.driver == None:
+            return
+
+        if self.driver.browser_pid != None:
+            try:
+                os.kill(self.driver.browser_pid, 9)
+            except:
+                pass
+
+        if self.driver.service != None and self.driver.service.process != None:
+            try:
+                os.kill(self.driver.service.process.pid, 9)
+            except:
+                pass
 
     def scroll_down_page(self, scrolls=1):
         self.log("Scrolling down the page")
@@ -103,6 +136,9 @@ class Helper:
             return self.uc
 
         options = uc.ChromeOptions()
+        options.add_argument("--disable-breakpad")
+        options.add_argument("--noerrdialogs")
+        options.add_argument("--disable-crash-reporter")
         if headless:
             options.headless = True
             options.add_argument("--headless")
@@ -183,7 +219,7 @@ def args_parser():
                     epilog = "Text at the bottom of help")
 
     parser.add_argument("config_path", action="store", type=str, default=config_path, help="Path to the configuration file to load and use")
-    parser.add_argument("-m", "--mode", dest="mode", action="store", type=str, default="config", help="Run the scrapers in a different mode (single = single site mode, config = config mode)")
+    parser.add_argument("-m", "--mode", dest="mode", action="store", type=str, default="multiprocessing", help="Run the scrapers in a different mode (single = single site mode, threading = threaded mode, multiprocessing = multiprocessing mode)")
     parser.add_argument("-s", "--site", dest="site", action="store", type=str, default="", help="Site to run and scrape (single-site mode only)")
     parser.add_argument("-x", "--disable-xvfb", dest="disable_xvfb", action="store_true", default=False, help="Disable headless Xvfb and use DISPLAY from script environment")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=True)
@@ -194,7 +230,7 @@ def main():
     parser = args_parser()
     args = parser.parse_args()
 
-    if args.mode != "single" and args.mode != "config":
+    if args.mode != "single" and args.mode != "multiprocessing" and args.mode != "threading":
         parser.print_help()
         return
 
@@ -239,7 +275,7 @@ def main():
         sys.exit(4)
 
     threads = []
-    use_threads = args.mode == "config"
+    processes = []
     for site_id, site_config in sites:
         if args.mode == "single" and site_id != args.site:
             continue
@@ -260,7 +296,7 @@ def main():
             log("Configuration for site '%s' does not specify what class to start" % (site_id))
             continue
 
-        if not site_config["enabled"] and args.mode == "config":
+        if not site_config["enabled"] and args.mode != "single":
             log("Site '%s' is disabled" % (site_id))
             continue
         
@@ -275,24 +311,36 @@ def main():
         module = import_site(site_path)
 
         module_class = getattr(module, site_config["class"])
-        module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.disable_xvfb)
+        module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.mode, args.disable_xvfb)
         module_obj = module_class(module_helper)
 
-        if use_threads:
+        if args.mode == "threading":
             thread = threading.Thread(target=module_obj.start, args=[])
             threads.append(thread)
             thread.start()
+        elif args.mode == "multiprocessing":
+            process = Process(target=module_obj.start, args=())
+            processes.append(process)
+            process.start()
         else:
             module_obj.start()
 
-    if use_threads:
+    if args.mode == "threading":
         if len(threads) == 0:
             log("No scrapers started, aborting.")
             sys.exit(5)
 
         log("All site threads started")
         for thread in threads:
-            thread.join()    
+            thread.join()
+    elif args.mode == "multiprocessing":
+        if len(processes) == 0:
+            log("No scrapers started, aborting.")
+            sys.exit(5)
+
+        log("All site threads started")
+        for process in processes:
+            process.join()
     
     log("Shutting down synchronous MongoDB client")
     sync_mongodb_client.close()

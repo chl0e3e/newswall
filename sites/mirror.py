@@ -34,9 +34,7 @@ class Mirror:
             except Exception as e:
                 exception_str = traceback.format_exc()
                 self.helper.log("Failed during setup", exception=exception_str)
-                if self.driver != None:
-                    self.driver.quit()
-                    self.driver = None
+                self.stop()
                 time.sleep(30)
                 continue
 
@@ -166,6 +164,7 @@ class Mirror:
         self.log("Exited main loop")
     
     def stop(self):
+        self.helper.kill_9_browser_and_driver()
         if self.driver != None:
             self.driver.quit()
             self.driver = None
