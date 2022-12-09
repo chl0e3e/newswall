@@ -150,9 +150,9 @@ class Helper:
             options.add_argument("--headless")
 
         if not self.disable_xvfb:
-            display = (":%d" % self.vdisplay.new_display)
             self.vdisplay = Xvfb(width=1920, height=1080)
             self.vdisplay.start()
+            display = (":%d" % self.vdisplay.new_display)
         elif "DISPLAY" in os.environ:
             display = os.environ["DISPLAY"]
         else:
