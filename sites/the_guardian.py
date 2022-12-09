@@ -162,7 +162,7 @@ class TheGuardian:
                 check_cookie_disclaimer_2()
                 time.sleep(5)
                 #wait_for_page_ready(self.helper.interval_page_ready())
-                #self.helper.scroll_down_page()
+                self.helper.scroll_down_page()
                 save_articles()
             except Exception as e:
                 self.log("Failed waiting for site: %s" % (str(e)), exception=traceback.format_exc())

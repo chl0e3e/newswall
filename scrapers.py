@@ -273,6 +273,7 @@ def main():
         if not os.path.exists(site_path):
             log("Site '%s' cannot be found at %s" % (site_id, site_path))
             continue
+        log("Importing '%s' @ '%s'" % (site_id, site_path))
         module = import_site(site_path)
 
         module_class = getattr(module, site_config["class"])
