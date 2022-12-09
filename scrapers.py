@@ -145,6 +145,8 @@ class Helper:
         options.add_argument("--disable-breakpad")
         options.add_argument("--noerrdialogs")
         options.add_argument("--disable-crash-reporter")
+        options.add_argument("--disable-software-rasterizer")
+        options.add_argument("--disable-gpu")
         if headless:
             options.headless = True
             options.add_argument("--headless")
