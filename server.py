@@ -267,6 +267,8 @@ class NewsWall:
 
             return aggregation
 
+        aggregation.append({"$project": {"presence": "0"}})
+
         await send({"cmd": "log", "data": self.logs_buffer})
 
         try:

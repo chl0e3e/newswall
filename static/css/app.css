@@ -317,6 +317,10 @@ body {
     bottom: 50px;
 }
 
+#list {
+    border: none;
+}
+
 #list > article > a {
     display: flex;
 }
@@ -326,6 +330,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+#list > article > a > .info {
+    position: relative;
+}
+
+#list > article > a > .info > h5 > a {
+    float: right
 }
 
 #list > article > a > .image > img {

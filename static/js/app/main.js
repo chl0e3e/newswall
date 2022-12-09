@@ -1,4 +1,4 @@
-define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize", "log"], function($, Masonry, imagesLoaded, SiteQueryBuilder, materialize, log) {
+define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize", "log", "uuidv4"], function($, Masonry, imagesLoaded, SiteQueryBuilder, materialize, log, uuidv4) {
     $(function() {
         window.gridElements = [];
         window.currentData = [];
@@ -257,7 +257,24 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                     let articleListItemInfo = $("<div></div>")
                         .attr("class", "info")
                         .append($("<h5></h5>")
-                            .text(report.title))
+                            .text(report.title)
+                            .prepend($("<a></a>")
+                                .attr("href", "javascript:;")
+                                .on('click', function() {
+                                    var modalUUID = uuidv4();
+                                    var modal = $("<div></div>")
+                                        .attr("id", modalUUID)
+                                        .attr("class", "modal")
+                                        .append($("<div></div>")
+                                            .attr("class", "modal-content")
+                                            .append($("<pre></pre>")
+                                                .text(JSON.stringify(report, null, 4))))
+                                    $(document.body).append(modal);
+                                    modal.modal();
+                                    modal.modal('open');
+                                })
+                                .append($("<i>info</i>")
+                                    .attr("class", "material-icons"))))
                         .append($("<time></time>")
                             .attr("datetime", report.report_date)
                             .text(report.report_date));

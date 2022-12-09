@@ -12,11 +12,11 @@ import time
 import traceback
 import hashlib
 
-class ArsTechnica:
+class MacRumors:
     def __init__(self, helper):
         self.helper = helper
         self.driver = None
-        self.url = "https://arstechnica.com/"
+        self.url = "https://macrumors.com/"
 
     def start(self):
         while True:
@@ -34,7 +34,7 @@ class ArsTechnica:
                 time.sleep(30)
                 continue
 
-            self.helper.log("Fetching Ars Technica")
+            self.helper.log("Fetching MacRumors")
 
             def navigate():
                 self.helper.log("Navigating to page: %s" % (self.url))
@@ -42,14 +42,17 @@ class ArsTechnica:
 
             def wait_for_page_ready(interval):
                 self.helper.log("Waiting for page")
-                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "main")))
+                WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "root")))
             
             def check_cookie_disclaimer():
                 try:
-                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "#onetrust-accept-btn-handler")
-                    if consent_elements != None and len(consent_elements) > 0:
+                    consent_elements = self.driver.find_elements(By.CSS_SELECTOR, "[aria-label='Privacy Manager window']")
+                    if len(consent_elements) > 0:
                         self.helper.log("Cookie disclaimer found")
-                        consent_elements[0].click()
+                        self.driver.switch_to.frame(consent_elements[0])
+                        self.driver.find_element(By.CSS_SELECTOR, "#save").click()
+                        self.driver.switch_to.default_content()
+                        time.sleep(1)
                 except:
                     self.helper.log("Failed to find cookie disclaimer")
 
@@ -90,15 +93,11 @@ class ArsTechnica:
             def save_articles():
                 self.helper.log("Saving articles")
                 
-                articles = self.driver.find_elements(By.CSS_SELECTOR, "li.article")
+                articles = self.driver.find_elements(By.CSS_SELECTOR, "article")
 
                 for article in articles:
                     article_data = {}
-                    article_link_element = None
-                    try:
-                        article_link_element = article.find_element(By.CSS_SELECTOR, "h2 > a")
-                    except:
-                        continue
+                    article_link_element = article.find_element(By.CSS_SELECTOR, "a")
                     article_data["url"] = article_link_element.get_attribute("href")
                     article_id = hashlib.sha256(article_data["url"].encode("ascii")).hexdigest()
 
@@ -110,11 +109,13 @@ class ArsTechnica:
                         article_data["screenshot_path"] = article_screenshot_paths["path"]
 
                         article_data["title"] = article_link_element.get_attribute("innerText")
-                        article_data["excerpt"] = article.find_element(By.CSS_SELECTOR, ".excerpt").get_attribute("innerText")
-                        article_data["date"] = int(article.find_element(By.CSS_SELECTOR, "time").get_attribute("data-time"))
-                        article_data["comment_count"] = int(article.find_element(By.CSS_SELECTOR, ".comment-count-number").get_attribute("innerText"))
+                        article_data["body"] = article.find_element(By.CSS_SELECTOR, ".js-contentInner").get_attribute("innerText")
+                        article_date_element = article.find_element(By.CSS_SELECTOR, "time")
+                        article_data["date"] = article_date_element.get_attribute("datetime")
+                        article_data["date_human"] = article_date_element.get_attribute("innerText")
+                        article_data["comment_count"] = article.find_element(By.CSS_SELECTOR, "[href*='forums.']").get_attribute("innerText")
                         
-                        article_byline_element = article.find_element(By.CSS_SELECTOR, ".byline > a")
+                        article_byline_element = article.find_element(By.CSS_SELECTOR, "[rel='author']")
                         article_data["author"] = article_byline_element.get_attribute("innerText").strip()
                         article_data["author_url"] = article_byline_element.get_attribute("href")
 

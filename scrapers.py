@@ -61,7 +61,7 @@ class Helper:
             "url": "/images/" + self.id + "/" + image_filename
         }
 
-    def scroll_down_page(self):
+    def scroll_down_page(self, scrolls=1):
         self.log("Scrolling down the page")
         page_height = self.driver.execute_script("return document.body.scrollHeight")
         browser_height = self.driver.get_window_size()["height"]
@@ -79,7 +79,7 @@ class Helper:
                 self.log("Scrolling aborted after 100 attempts (too slow?)")
                 break
             self.xdotool.activate()
-            self.xdotool.scroll_down()
+            for i in range(scrolls): self.xdotool.scroll_down()
             time.sleep(self.interval_page_scroll())
             scroll_y = self.driver.execute_script("return window.scrollY")
             #self.log("scroll_y: %d" % (scroll_y))

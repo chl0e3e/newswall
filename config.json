@@ -343,6 +343,42 @@
                 "screenshot_url": "Screenshot URL",
                 "screenshot_path": "Screenshot Path"
             }
+        },
+        "associated_press": {
+            "path": "./sites/associated_press.py",
+            "name": "Associated Press",
+            "class": "AssociatedPress",
+            "logo": "/static/img/associated_press.svg",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "section": "Section",
+                "description": "Description",
+                "timestamp": "Timestamp",
+                "author": "Author",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
+        },
+        "macrumors": {
+            "path": "./sites/macrumors.py",
+            "name": "MacRumors",
+            "class": "MacRumors",
+            "logo": "/static/img/macrumors.svg",
+            "enabled": false,
+            "keys": {
+                "url": "URL",
+                "title": "Title",
+                "body": "Body",
+                "date": "Date",
+                "date_human": "Date (human-readable)",
+                "author": "Author",
+                "author_url": "Author URL",
+                "comment_count": "Comment Count",
+                "screenshot_url": "Screenshot URL",
+                "screenshot_path": "Screenshot Path"
+            }
         }
     }
 }
