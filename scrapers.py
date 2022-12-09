@@ -45,7 +45,7 @@ class Helper:
             self.vdisplay.start()
     
     def interval(self):
-        return 3600 + random.randrange(-900, 900)
+        return 3600 + random.randrange(-900, 1800)
     
     def interval_page_ready(self):
         return random.randrange(30, 120)
@@ -314,12 +314,16 @@ def main():
         module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.mode, args.disable_xvfb)
         module_obj = module_class(module_helper)
 
+        def delayed_start():
+            time.sleep(module_helper.interval())
+            module_obj.start()
+
         if args.mode == "threading":
-            thread = threading.Thread(target=module_obj.start, args=[])
+            thread = threading.Thread(target=delayed_start, args=[])
             threads.append(thread)
             thread.start()
         elif args.mode == "multiprocessing":
-            process = Process(target=module_obj.start, args=())
+            process = Process(target=delayed_start, args=())
             processes.append(process)
             process.start()
         else:
