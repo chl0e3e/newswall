@@ -314,18 +314,12 @@ def main():
         module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.mode, args.disable_xvfb)
         module_obj = module_class(module_helper)
 
-        def delayed_start():
-            delay_start_interval = random.randrange(0, 600)
-            module_helper.log("Delaying process start for %d seconds" % (delay_start_interval))
-            time.sleep(delay_start_interval)
-            module_obj.start()
-
         if args.mode == "threading":
-            thread = threading.Thread(target=delayed_start, args=[])
+            thread = threading.Thread(target=module_obj.start, args=[])
             threads.append(thread)
             thread.start()
         elif args.mode == "multiprocessing":
-            process = Process(target=delayed_start, args=())
+            process = Process(target=module_obj.start, args=())
             processes.append(process)
             process.start()
         else:
