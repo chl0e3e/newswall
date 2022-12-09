@@ -154,24 +154,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
 
             send(queryCmdData);
         }
-
-        /*window.addEventListener('scroll', function(e) {
-            var body = document.body, html = document.documentElement;
-
-            var top = (window.pageYOffset || html.scrollTop)  - (html.clientTop || 0); // https://stackoverflow.com/a/3464890
-
-            var height = Math.max( body.scrollHeight, body.offsetHeight, 
-                html.clientHeight, html.scrollHeight, html.offsetHeight ); // https://stackoverflow.com/a/1147768
-
-            if (top + document.body.clientHeight >= height) {
-                if(window.currentQuery != null) {
-                    var lastReport = window.currentData[window.currentData.length - 1];
-                    query(window.currentQuery, {
-                        "from": lastReport._id
-                    });
-                }
-            }
-        });*/
             
         window.addEventListener('scroll',()=>{
             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {

@@ -267,7 +267,6 @@ class NewsWall:
 
             return aggregation
 
-
         await send({"cmd": "log", "data": self.logs_buffer})
 
         try:
@@ -289,7 +288,7 @@ class NewsWall:
                             aggregation = await build_aggregation(data["data"], pagination, feed_cursor)
                             aggregation.append({ "$sort": { "_id" : -1} })
                             aggregation.append({ "$limit": 100 })
-                            aggregation.append({"$project": {"presence": "0"}})
+                            aggregation.append({ "$project": { "presence": 0 } })
                             docs = []
                             async for doc in self.async_mongodb_database["empty"].aggregate(aggregation):
                                 docs.append(doc)
