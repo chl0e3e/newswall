@@ -401,7 +401,7 @@
             "path": "./sites/techcrunch.py",
             "name": "TechCrunch",
             "class": "TechCrunch",
-            "logo": "/static/img/techcrunch.svg",
+            "logo": "/static/img/techcrunch.png",
             "enabled": true,
             "keys": {
                 "url": "URL",
