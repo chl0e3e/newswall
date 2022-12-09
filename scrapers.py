@@ -170,11 +170,9 @@ def import_site(path):
     import importlib.util
     import sys
     name = os.path.basename(os.path.splitext(path)[0])
-    print("Importing %s from %s" % (name, path))
     spec = importlib.util.spec_from_file_location(name, path)
     site = importlib.util.module_from_spec(spec)
     sys.modules[name] = site
-    print("module: " + str(site))
     spec.loader.exec_module(site)
     return site
 

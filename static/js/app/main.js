@@ -303,6 +303,8 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         }
 
         function grid(enabled) {
+            localStorage.setItem("grid", JSON.stringify(enabled));
+
             if(enabled) {
                 $("#btn-change-view").find("i").text("grid_off");
                 $("#list").hide();
@@ -326,6 +328,12 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
             }
         }
 
+        let gridLS = localStorage.getItem("grid");
+        if (gridLS == null) {
+            window.gridEnabled = true;
+        } else {
+            window.gridEnabled = JSON.parse(gridLS);
+        }
         grid(window.gridEnabled);
 
         $("#btn-change-view").on("click", function(e) {
