@@ -21,7 +21,7 @@ profiles_folder = get_build_folder("profiles")
 images_folder = get_build_folder("images")
 
 class Helper:
-    def __init__(self, id, name, sync_mongodb_database, sigkill_child_processes=False, disable_xvfb=False):
+    def __init__(self, id, name, sync_mongodb_database, sigkill_child_processes=False, disable_xvfb=False, start_detached=False):
         self.id = id
         self.name = name
         self.uc = None
@@ -29,6 +29,7 @@ class Helper:
         self.page_scroll_interval = 0.5
         self.sigkill_child_processes = sigkill_child_processes
         self.disable_xvfb = disable_xvfb
+        self.start_detached = start_detached
     
     def interval(self):
         return random.randrange(0, 3600)
@@ -154,7 +155,8 @@ class Helper:
             driver_executable_path=chromedriver_path,
             browser_executable_path=chrome_path,
             user_data_dir=profile_dir,
-            display=display)
+            display=display,
+            use_subprocess=(not self.start_detached))
 
         # find the window ID for this window
         window_uuid = uuid.uuid4()

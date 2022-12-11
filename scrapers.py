@@ -67,7 +67,7 @@ class ConcurrencyMode(Enum):
     MULTIPROCESSING = "multiprocessing"
 
 class ScraperManager:
-    def __init__(self, configuration_path="config.json", verbose=True, sigkill_child_processes=True, disable_xvfb=False):
+    def __init__(self, configuration_path="config.json", verbose=True, sigkill_child_processes=True, disable_xvfb=False, start_detached=False):
         if not os.path.exists(configuration_path):
             raise ConfigurationNotFoundException("The configuration file specified does not exist.")
         with open(configuration_path) as f:
@@ -75,6 +75,7 @@ class ScraperManager:
         self.verbose = verbose
         self.sigkill_child_processes = sigkill_child_processes
         self.disable_xvfb = disable_xvfb
+        self.start_detached = start_detached
         self.sync_mongodb_client = None
         self.sync_mongodb_database = None
         self.concurrency_mode = ConcurrencyMode.SINGLE
@@ -244,7 +245,7 @@ class ScraperManager:
             try:
                 sync_mongodb_client = MongoClient(self.configuration["database_url"])
                 sync_mongodb_database = sync_mongodb_client[self.configuration["database_name"]]
-                site_helper = Helper(site_identifier, site_configuration["name"], sync_mongodb_database, self.sigkill_child_processes, self.disable_xvfb)
+                site_helper = Helper(site_identifier, site_configuration["name"], sync_mongodb_database, self.sigkill_child_processes, self.disable_xvfb, self.start_detached)
                 site_object = self.scrapers[site_identifier]["class"](site_helper)
                 site_object.start()
             except Exception as e:
@@ -334,6 +335,7 @@ def parse_args():
     parser.add_argument("-n", "--concurrency-maximum", dest="concurrency_maximum", action="store", type=int, default=5, help="A number to denote the instances of scrapers to run concurrently")
     parser.add_argument("-t", "--concurrency-interval", dest="concurrency_interval", action="store", type=int, default=1800, help="The interval between launching the number of tasks specified as the concurrency maximum")
     parser.add_argument("-s", "--sigkill-child-processes", dest="sigkill_child_processes", action="store_true", default=False, help="Send SIGKILL to all child processes after running the scraper")
+    parser.add_argument("-d", "--start-detached", dest="start_detached", action="store_true", default=False, help="Start the browser process detached")
     parser.add_argument("-o", "--override-site", dest="override_site", action="store", type=str, default="", help="Override the configuration and only start the specified site")
     parser.add_argument("-x", "--disable-xvfb", dest="disable_xvfb", action="store_true", default=False, help="Disable headless Xvfb and use DISPLAY from script environment")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=True)
@@ -348,7 +350,11 @@ def main():
     except:
         raise InvalidProgramArgumentException("Concurrency mode '%s' was not found")
 
-    manager = ScraperManager(args.configuration_path, sigkill_child_processes=args.sigkill_child_processes)
+    manager = ScraperManager(args.configuration_path,
+        disable_xvfb=args.disable_xvfb,
+        sigkill_child_processes=args.sigkill_child_processes,
+        start_detached=args.start_detached)
+
     manager.set_concurrency_mode(concurrency_mode)
     
     try:
