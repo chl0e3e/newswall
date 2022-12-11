@@ -41,7 +41,7 @@ class Helper:
         self.start_detached = start_detached
         self.random_user_data_directory = random_user_data_directory
         self.cleanup_user_data_directory = cleanup_user_data_directory
-        self.run_identifier = uuid.uuidv4()
+        self.run_identifier = uuid.uuid4()
     
     def interval(self):
         return random.randrange(0, 3600)
