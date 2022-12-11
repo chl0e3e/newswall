@@ -83,6 +83,8 @@ class ScraperManager:
         self.sigkill_child_processes = sigkill_child_processes
         self.disable_xvfb = disable_xvfb
         self.start_detached = start_detached
+        self.cleanup_user_data_directory = cleanup_user_data_directory
+        self.random_user_data_directory = random_user_data_directory
         self.sync_mongodb_client = None
         self.sync_mongodb_database = None
         self.concurrency_mode = ConcurrencyMode.SINGLE
