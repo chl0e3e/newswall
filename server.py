@@ -265,7 +265,9 @@ class NewsWall:
                             feed_cursor = data["feed_cursor"] if "feed_cursor" in data else None
                             aggregation = await build_aggregation(data["data"], log_func=self.async_log, pagination=pagination, feed_cursor=feed_cursor)
                             aggregation += [{ "$sort": { "_id" : -1} }, { "$limit": 100 }, { "$project": { "presence": 0 } }]
-                            docs = list(await self.async_mongodb_database["empty"].aggregate(aggregation))
+                            docs = []
+                            async for doc in self.async_mongodb_database["empty"].aggregate(aggregation):
+                                docs.append(doc)
                             await ws.send_str(json.dumps({"cmd": "report", "data": docs, "prepend": feed_cursor != None}, default=str))
         except:
             del self.clients[ws]
