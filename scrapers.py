@@ -106,7 +106,6 @@ class ScraperManager:
         if self.verbose:
             print("[%s] [%s] %s" % (log_line["source"], log_line["date"], line))
 
-
     def load_sites_from_configuration(self):
         def _import_site(path):
             if not os.path.exists(path):
@@ -240,11 +239,13 @@ class ScraperManager:
             raise ScriptNotEnabledException("The scraper you attempted to run is not enabled.")
 
         site_configuration = self.configuration["sites"][site_identifier]
-        site_helper = Helper(site_identifier, site_configuration["name"], self.sync_mongodb_database, self.sigkill_child_processes, self.disable_xvfb)
-        site_object = self.scrapers[site_identifier]["class"](site_helper)
         
         def entrypoint():
             try:
+                sync_mongodb_client = MongoClient(self.configuration["database_url"])
+                sync_mongodb_database = sync_mongodb_client[self.configuration["database_name"]]
+                site_helper = Helper(site_identifier, site_configuration["name"], sync_mongodb_database, self.sigkill_child_processes, self.disable_xvfb)
+                site_object = self.scrapers[site_identifier]["class"](site_helper)
                 site_object.start()
             except Exception as e:
                 self.log("ScraperManager caught an error on site '%s': %s" % (site_identifier, str(e)), exception=e)
