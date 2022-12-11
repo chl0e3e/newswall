@@ -5,6 +5,7 @@ import random
 import time
 import os
 import datetime
+import shutil
 
 import uc
 
@@ -21,7 +22,15 @@ profiles_folder = get_build_folder("profiles")
 images_folder = get_build_folder("images")
 
 class Helper:
-    def __init__(self, id, name, sync_mongodb_database, sigkill_child_processes=False, disable_xvfb=False, start_detached=False):
+    def __init__(self,
+            id,
+            name,
+            sync_mongodb_database,
+            sigkill_child_processes=False,
+            disable_xvfb=False,
+            start_detached=False,
+            random_user_data_directory=False,
+            cleanup_user_data_directory=False):
         self.id = id
         self.name = name
         self.uc = None
@@ -30,6 +39,9 @@ class Helper:
         self.sigkill_child_processes = sigkill_child_processes
         self.disable_xvfb = disable_xvfb
         self.start_detached = start_detached
+        self.random_user_data_directory = random_user_data_directory
+        self.cleanup_user_data_directory = cleanup_user_data_directory
+        self.run_identifier = uuid.uuidv4()
     
     def interval(self):
         return random.randrange(0, 3600)
@@ -51,6 +63,15 @@ class Helper:
             "url": "/images/" + self.id + "/" + image_filename
         }
 
+    def get_user_data_directory_path(self):
+        if self.random_user_data_directory:
+            return os.path.join(profiles_folder, self.run_identifier)
+        else:
+            return os.path.join(profiles_folder, self.id)
+
+    def rmtree_user_data_directory(self):
+        shutil.rmtree(self.get_user_data_directory_path(), ignore_errors=True, onerror=None)
+
     def stop(self):
         if not self.disable_xvfb:
             try:
@@ -68,6 +89,8 @@ class Helper:
                 except:
                     pass
             self.driver = None
+            if self.cleanup_user_data_directory:
+                self.rmtree_user_data_directory()
             return
 
         if getattr(self, "driver") == None:
@@ -92,6 +115,9 @@ class Helper:
             self.driver = None
         except:
             pass
+
+        if self.cleanup_user_data_directory:
+            self.rmtree_user_data_directory()
 
     def scroll_down_page(self, scrolls=1):
         self.log("Scrolling down the page")
@@ -150,12 +176,10 @@ class Helper:
         else:
             display = ":0"
 
-        profile_dir = os.path.join(profiles_folder, self.id)
         driver = uc.Chrome(options=options,
             driver_executable_path=chromedriver_path,
             browser_executable_path=chrome_path,
-            service_log_path=self.id+".log",
-            user_data_dir=profile_dir,
+            user_data_dir=self.get_user_data_directory_path(),
             display=display,
             use_subprocess=(not self.start_detached))
 

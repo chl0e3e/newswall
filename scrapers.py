@@ -336,6 +336,8 @@ def parse_args():
     parser.add_argument("-t", "--concurrency-interval", dest="concurrency_interval", action="store", type=int, default=1800, help="The interval between launching the number of tasks specified as the concurrency maximum")
     parser.add_argument("-s", "--sigkill-child-processes", dest="sigkill_child_processes", action="store_true", default=False, help="Send SIGKILL to all child processes after running the scraper")
     parser.add_argument("-d", "--start-detached", dest="start_detached", action="store_true", default=False, help="Start the browser process detached")
+    parser.add_argument("-r", "--random-user-data-directory", dest="random_user_data_directory", action="store_true", default=False, help="Start the browser process with a random user data directory every time it scrapes (including each scrape in the same program execution)")
+    parser.add_argument("-c", "--cleanup-user-data-directory", dest="cleanup_user_data_directory", action="store_true", default=False, help="Remove the whole user data directory every time it scrapes (including each scrape in the same program execution)")
     parser.add_argument("-o", "--override-site", dest="override_site", action="store", type=str, default="", help="Override the configuration and only start the specified site")
     parser.add_argument("-x", "--disable-xvfb", dest="disable_xvfb", action="store_true", default=False, help="Disable headless Xvfb and use DISPLAY from script environment")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=True)
@@ -353,6 +355,8 @@ def main():
     manager = ScraperManager(args.configuration_path,
         disable_xvfb=args.disable_xvfb,
         sigkill_child_processes=args.sigkill_child_processes,
+        random_user_data_directory=args.random_user_data_directory,
+        cleanup_user_data_directory=args.cleanup_user_data_directory,
         start_detached=args.start_detached)
 
     manager.set_concurrency_mode(concurrency_mode)
