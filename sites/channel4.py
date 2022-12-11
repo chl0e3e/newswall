@@ -106,7 +106,6 @@ class Channel4:
                         if article_id in articles_saved:
                             continue
                         articles_saved.append(article_id)
-                        print(article_data["url"])
 
                         article_db_obj = self.helper.sync_find_if_exists(article_id)
                         if article_db_obj == None:

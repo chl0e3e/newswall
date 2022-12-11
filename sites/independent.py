@@ -72,7 +72,6 @@ class Independent:
                     self.xdotool.scroll_down()
                     time.sleep(0.5)
                 subscribe_modal = self.driver.find_elements(By.CSS_SELECTOR, ".tp-active iframe")
-                print(len(subscribe_modal))
                 if len(subscribe_modal) > 0:
                     self.driver.switch_to.frame(subscribe_modal[0])
                     self.driver.find_element(By.CSS_SELECTOR, ".pn-template__close").click()

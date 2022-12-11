@@ -65,7 +65,6 @@ class Metro:
 
             if width == 0 or height == 0:
                 return False
-            print((width, height))
 
             right = left + width
             bottom = top + height

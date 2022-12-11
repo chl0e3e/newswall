@@ -163,7 +163,6 @@ class WallStreetJournal:
             articles = self.driver.find_elements(By.CSS_SELECTOR, "[class*='personalized-card']")
 
             for article in articles:
-                print(article.get_attribute("outerHTML"))
                 article_data = {}
                 article_link_element = None
                 article_link_element = article.find_element(By.CSS_SELECTOR, "a")
