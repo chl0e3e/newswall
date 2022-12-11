@@ -1,365 +1,391 @@
 #!/usr/bin/env python3
 import os
-import uuid
 import datetime
-import base64
-import threading
 import json
 import time
 import sys
-import random
 import argparse
-import psutil
+import importlib.util
+import sys
+
+from operator import itemgetter
+
+from threading import Thread
 from multiprocessing import Process
+
+from enum import Enum
 
 from pymongo import MongoClient # sync mongodb
 
-import uc
-
-from xdotool import XdotoolWrapper
-
-from xvfbwrapper import Xvfb
-
-from buildutil import get_build_var, get_build_folder, get_config_path, get_build_root
-
-chromedriver_path = get_build_var("chromedriver")
-chrome_path = get_build_var("chrome")
-config_path = get_config_path()
-profiles_folder = get_build_folder("profiles")
-images_folder = get_build_folder("images")
+from helper import Helper
+from buildutil import get_config_path, get_build_root
 
 verbose = False
 
-class Helper:
-    def __init__(self, id, name, sync_mongodb_database, mode, disable_xvfb):
-        self.id = id
-        self.name = name
-        self.uc = None
-        self.sync_mongodb_database = sync_mongodb_database
-        self.page_scroll_interval = 0.5
-        self.mode = mode
+class InvalidProgramArgumentException(Exception):
+    pass
+
+class ConfigurationException(Exception):
+    pass
+
+class ConfigurationNotFoundException(ConfigurationException):
+    pass
+
+class ScriptFileNotFoundException(ConfigurationException):
+    pass
+
+class ApplicationException(Exception):
+    pass
+
+class DatabaseConnectionFailedException(ApplicationException):
+    pass
+
+class DatabaseNotConnectedException(ApplicationException):
+    pass
+
+class ConfigurationNotLoadedException(ApplicationException):
+    pass
+
+class ScriptNotConfiguredException(ApplicationException):
+    pass
+
+class ScriptNotEnabledException(ApplicationException):
+    pass
+
+class NoScriptsEnabledException(ApplicationException):
+    pass
+
+class ScriptNotFoundException(ApplicationException):
+    pass
+
+class ScraperAlreadyRunningException(ApplicationException):
+    pass
+
+class ConcurrencyMode(Enum):
+    SINGLE = "single"
+    THREADING = "threading"
+    MULTIPROCESSING = "multiprocessing"
+
+class ScraperManager:
+    def __init__(self, configuration_path="config.json", verbose=True, sigkill_child_processes=True, disable_xvfb=False):
+        if not os.path.exists(configuration_path):
+            raise ConfigurationNotFoundException("The configuration file specified does not exist.")
+        with open(configuration_path) as f:
+            self.configuration = json.load(f)
+        self.verbose = verbose
+        self.sigkill_child_processes = sigkill_child_processes
         self.disable_xvfb = disable_xvfb
-    
-    def interval(self):
-        return random.randrange(0, 3600)
-    
-    def interval_page_ready(self):
-        return random.randrange(30, 120)
-    
-    def interval_page_scroll(self):
-        return 0.25
+        self.sync_mongodb_client = None
+        self.sync_mongodb_database = None
+        self.concurrency_mode = ConcurrencyMode.SINGLE
+        self.scrapers = None
 
-    def get_image_path(self, id, ext="png"):
-        site_images_folder = os.path.join(images_folder, self.id)
-        if not os.path.exists(images_folder): os.mkdir(images_folder)
-        if not os.path.exists(site_images_folder): os.mkdir(site_images_folder)
-        image_filename = id + "." + ext
-        image_path = os.path.join(site_images_folder, image_filename)
-        return {
-            "path": image_path,
-            "url": "/images/" + self.id + "/" + image_filename
-        }
+    def set_concurrency_mode(self, concurrency_mode):
+        self.concurrency_mode = concurrency_mode
 
-    def stop(self):
-        if not self.disable_xvfb:
-            try:
-                self.vdisplay.stop()
-            except:
-                pass
-
-        if self.mode == "multiprocessing":
-            current_process = psutil.Process()
-            children = current_process.children(recursive=True)
-            for child in children:
-                self.log("Killing pid %d" % child.pid)
-                try:
-                    os.kill(child.pid, 9)
-                except:
-                    pass
-            return
-
-        if getattr(self, "driver") == None:
-            return
-
-        if self.driver == None:
-            return
-
-        if self.driver.browser_pid != None:
-            try:
-                os.kill(self.driver.browser_pid, 9)
-            except:
-                pass
-
-        if self.driver.service != None and self.driver.service.process != None:
-            try:
-                os.kill(self.driver.service.process.pid, 9)
-            except:
-                pass
+    def connect_to_database(self):
+        print("Attempting to connect to MongoDB synchronously")
         try:
-            self.driver.quit()
-        except:
-            pass
+            self.sync_mongodb_client = MongoClient(self.configuration["database_url"])
+            self.sync_mongodb_database = self.sync_mongodb_client[self.configuration["database_name"]]
+        except Exception as e:
+            raise DatabaseConnectionFailedException(e)
 
-    def scroll_down_page(self, scrolls=1):
-        self.log("Scrolling down the page")
-        page_height = self.driver.execute_script("return document.body.scrollHeight")
-        browser_height = self.driver.get_window_size()["height"]
-        document_height = self.driver.execute_script("var body = document.body, html = document.documentElement; return Math.max( body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight );")
-        last_scroll_y = 0
-        scroll_y = 0
-        scroll_attempts_failed = 0
-        scroll_attempts_failed_override = 0
-        #self.log("page_height: %d, browser_height: %d" % (page_height, browser_height))
-        while True:
-            if scroll_attempts_failed == 5:
-                self.log("Scrolling stopped, %d %d %d %d" % (scroll_y, page_height, document_height, browser_height))
-                break
-            if scroll_attempts_failed_override == 20:
-                self.log("Scrolling aborted after 100 attempts (too slow?)")
-                break
-            self.xdotool.activate()
-            for i in range(scrolls): self.xdotool.scroll_down()
-            time.sleep(self.interval_page_scroll())
-            scroll_y = self.driver.execute_script("return window.scrollY")
-            #self.log("scroll_y: %d" % (scroll_y))
-            window_height = self.driver.execute_script("return window.innerHeight")
-            if last_scroll_y == scroll_y:
-                scroll_attempts_failed_override += 1
-                continue
-            else:
-                scroll_attempts_failed_override = 0
+        info = self.sync_mongodb_client.server_info()
+        self.log("Application connected to MongoDB (%s) synchronously" % (info["version"]))
+        return info["version"]
 
-            if ((scroll_y + window_height) + 200) > document_height and scroll_y == last_scroll_y and scroll_y > browser_height:
-                scroll_attempts_failed = scroll_attempts_failed + 1
-                continue
-            else:
-                scroll_attempts_failed = 0
+    def shutdown(self):
+        self.log("Shutting down: closing database connection")
+        self.sync_mongodb_client.close()
 
-            last_scroll_y = scroll_y
-
-    def sync_uc(self, headless=False):
-        if self.uc != None:
-            return self.uc
-
-        options = uc.ChromeOptions()
-        options.add_argument("--disable-breakpad")
-        options.add_argument("--noerrdialogs")
-        options.add_argument("--disable-crash-reporter")
-        options.add_argument("--disable-software-rasterizer")
-        options.add_argument("--disable-gpu")
-        if headless:
-            options.headless = True
-            options.add_argument("--headless")
-
-        if not self.disable_xvfb:
-            self.vdisplay = Xvfb(width=1920, height=1080)
-            self.vdisplay.start()
-            display = (":%d" % self.vdisplay.new_display)
-        elif "DISPLAY" in os.environ:
-            display = os.environ["DISPLAY"]
-        else:
-            display = ":0"
-
-        profile_dir = os.path.join(profiles_folder, self.id)
-        driver = uc.Chrome(options=options,
-            driver_executable_path=chromedriver_path,
-            browser_executable_path=chrome_path,
-            user_data_dir=profile_dir,
-            log_level=10,
-            display=display)
-        self.ucs = driver
-
-        # find the window ID for this window
-        window_uuid = uuid.uuid4()
-        window_uuid_str = str(window_uuid)
-        self.sync_log("uuid: %s" % window_uuid_str)
-        html_with_uuid_title = "<!DOCTYPE html><html><head><title>" + window_uuid_str + "</title></head><body></body></html>"
-        self.sync_log("uuidhtml: %s" % html_with_uuid_title)
-        window_uuid_url = "data:text/html;charset=utf-8;base64," + base64.b64encode(html_with_uuid_title.encode("ASCII")).decode('ASCII')
-        self.sync_log("uuidurl: %s" % window_uuid_url)
-        driver.get(window_uuid_url)
-        self.sync_log("Navigated to window finder data URL")
-        xdotool = XdotoolWrapper(display, window_uuid)
-        self.sync_log("XdotoolWrapper created, window: %d" % (xdotool.window_id))
-
-        self.driver = driver
-        self.xdotool = xdotool
-
-        return xdotool, driver
-
-    def sync_find_if_exists(self, id):
-        return self.sync_mongodb_database[self.id].find_one({"report_id": id})
-
-    def sync_report(self, id, data):
-        return self.sync_mongodb_database[self.id].insert_one({"report_id": id, "report_date": datetime.datetime.utcnow(), **data})
-    
-    def sync_insert_presence(self, db_id, date):
-        return self.sync_mongodb_database[self.id].update_one({"_id": db_id}, {"$push": {"presence": date}})
-
-    def log(self, message, exception=None):
-        return self.sync_log(message, exception=exception)
-
-    def sync_log(self, message, exception=None):
-        log_line = {"date": datetime.datetime.utcnow(), "source": self.id, "text": message}
-        if exception != None:
-            log_line["exception"] = exception
-
-        log_id = self.sync_mongodb_database["log"].insert_one(log_line).inserted_id
-        log_line["_id"] = log_id
+    def log(self, line):
+        log_line = {"date": datetime.datetime.utcnow(), "source": "scrapers", "text": line}
+        log_line["_id"] = self.sync_mongodb_database["log"].insert_one(log_line).inserted_id
         
-        print("[%s] [%s] %s" % (log_line["source"], log_line["date"], message))
-        if exception != None:
-            print(exception)
-        return log_id
+        if self.verbose:
+            print("[%s] [%s] %s" % (log_line["source"], log_line["date"], line))
 
-def import_site(path):
-    import importlib.util
-    import sys
-    name = os.path.basename(os.path.splitext(path)[0])
-    spec = importlib.util.spec_from_file_location(name, path)
-    site = importlib.util.module_from_spec(spec)
-    sys.modules[name] = site
-    spec.loader.exec_module(site)
-    return site
 
-def args_parser():
+    def load_sites_from_configuration(self):
+        def _import_site(path):
+            if not os.path.exists(path):
+                raise ScriptNotFoundException("The script referenced existing at '%s' was not found." % (path))
+            name = os.path.basename(os.path.splitext(path)[0])
+            spec = importlib.util.spec_from_file_location(name, path)
+            site = importlib.util.module_from_spec(spec)
+            sys.modules[name] = site
+            spec.loader.exec_module(site)
+            return site
+
+        scrapers = {}
+
+        for site_identifier, site_configuration in self.configuration["sites"].items():
+            for site_configuration_property in ["name", "enabled", "path", "class"]:
+                if not site_configuration_property in site_configuration:
+                    raise ConfigurationException("Configuration for site '%s' does not contain the '%s' property" % (site_identifier, site_configuration_property))
+            
+            if not ".py" in site_configuration["path"]:
+                site_configuration["path"] = site_configuration["path"] + ".py"
+
+            site_path = os.path.join(get_build_root(), site_configuration["path"])
+            if not os.path.exists(site_path):
+                raise ScriptFileNotFoundException("Site '%s' cannot be found at %s" % (site_identifier, site_path))
+
+            self.log("Importing '%s' @ '%s'" % (site_identifier, site_path))
+            module = _import_site(site_path)
+
+            module_class = getattr(module, site_configuration["class"])
+
+            scrapers[site_identifier] = {
+                "identifier": site_identifier,
+                "running": False,
+                "last_run": 0,
+                "enabled": site_configuration["enabled"],
+                "class": module_class,
+                "configuration": site_configuration,
+                "runs": 0
+            }
+
+        self.scrapers = scrapers
+
+        return self.scrapers.keys()
+
+    def set_site_override(self, site_override_identifier):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to set an override.")
+
+        if not site_override_identifier in self.scrapers:
+            raise ScriptNotConfiguredException("The site attempting to run was not loaded from the configuration file.")
+
+        for site_identifier in self.scrapers.keys():
+            self.scrapers[site_identifier]["enabled"] = site_identifier == site_override_identifier
+
+    def get_scraper_identifiers(self):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        return self.scrapers.keys()
+
+    def get_scraper_identifiers_by_last_run(self):
+        identifiers = []
+        for value in sorted(self.scrapers.values(), key=lambda d: d['last_run']):
+            identifiers.append(value["identifier"])
+        return identifiers
+
+    def get_num_scrapers_enabled(self):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        return sum(1 for site_identifier in list(self.scrapers.keys()) if self.scrapers[site_identifier]["enabled"])
+
+    def get_num_scrapers_running(self):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        return sum(1 for site_identifier in list(self.scrapers.keys()) if self.scrapers[site_identifier]["running"])
+
+    def is_scraper_enabled(self, site_identifier):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        if not site_identifier in self.scrapers:
+            raise ScriptNotConfiguredException("The site attempting to run was not loaded from the configuration file.")
+
+        return self.scrapers[site_identifier]["enabled"]
+
+    def is_scraper_running(self, site_identifier):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        if not site_identifier in self.scrapers:
+            raise ScriptNotConfiguredException("The site attempting to run was not loaded from the configuration file.")
+
+        return self.scrapers[site_identifier]["running"]
+
+    def set_site_finished(self, site_identifier):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        if not site_identifier in self.scrapers:
+            raise ScriptNotConfiguredException("The site attempting to run was not loaded from the configuration file.")
+
+        self.scrapers[site_identifier]["last_run"] = time.time()
+        self.scrapers[site_identifier]["running"] = False
+        self.scrapers[site_identifier]["runs"] += 1
+        
+    def get_scraper_information(self, site_identifier):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to access the scraper information.")
+
+        if not site_identifier in self.scrapers:
+            raise ScriptNotConfiguredException("The site attempting to run was not loaded from the configuration file.")
+
+        return self.scrapers[site_identifier]
+
+    def start_scraper(self, site_identifier):
+        if self.scrapers == None:
+            raise ConfigurationNotLoadedException("You must call `ScraperManager.load_sites_from_configuration` before attempting to start a scraper.")
+
+        if not site_identifier in self.scrapers:
+            raise ScriptNotConfiguredException("The site attempting to run was not loaded from the configuration file.")
+
+        if self.sync_mongodb_client == None:
+            raise DatabaseNotConnectedException("You must call `ScraperManager.connect_to_database` before starting a scraper.")
+
+        if self.scrapers[site_identifier]["running"]:
+            raise ScraperAlreadyRunningException("The scraper you have attempted to run is already running.")
+
+        if not self.scrapers[site_identifier]["enabled"]:
+            raise ScriptNotEnabledException("The scraper you attempted to run is not enabled.")
+
+        site_configuration = self.configuration["sites"][site_identifier]
+        site_helper = Helper(site_identifier, site_configuration["name"], self.sync_mongodb_database, self.sigkill_child_processes, self.disable_xvfb)
+        site_object = self.scrapers[site_identifier]["class"](site_helper)
+        
+        def entrypoint():
+            try:
+                site_object.start()
+            except Exception as e:
+                self.log("ScraperManager caught an error on site '%s': %s" % (site_identifier, str(e)), exception=e)
+            finally:
+                self.log("ScraperManager site finished: '%s'" % site_identifier)
+
+        self.log("Starting scraper '%s'" % site_identifier)
+
+        self.scrapers[site_identifier]["running"] = True
+
+        if self.concurrency_mode == ConcurrencyMode.SINGLE:
+            entrypoint()
+            return True
+        elif self.concurrency_mode == ConcurrencyMode.THREADING:
+            thread = Thread(target=entrypoint)
+            thread.start()
+            return thread
+        elif self.concurrency_mode == ConcurrencyMode.MULTIPROCESSING:
+            process = Process(target=entrypoint)
+            process.start()
+            return process
+
+class ScraperScheduler:
+    def __init__(self, scraper_manager, concurrency_maximum, concurrency_interval):
+        self.scraper_manager = scraper_manager
+        self.concurrency_maximum = concurrency_maximum
+        self.concurrency_interval = concurrency_interval
+        self.tasks = {}
+
+    def run_iteration(self):
+
+        scrapers_running = self.scraper_manager.get_num_scrapers_running()
+        if scrapers_running < self.concurrency_maximum:
+            scrapers_starting = self.concurrency_maximum - scrapers_running
+            
+            for site_identifier in self.scraper_manager.get_scraper_identifiers_by_last_run():
+                site_information = self.scraper_manager.get_scraper_information(site_identifier)
+
+                def scraper_runnable():
+                    if not site_information["enabled"]:
+                        return False
+                    if site_information["running"]:
+                        return False
+                    if site_information["last_run"] == 0:
+                        return True
+                    if ((time.time() - site_information["last_run"]) > self.concurrency_interval):
+                        return True
+                    else:
+                        return False
+
+                if scraper_runnable():
+                    self.tasks[site_identifier] = self.scraper_manager.start_scraper(site_identifier)
+                    scrapers_starting -= 1
+                    if scrapers_starting == 0:
+                        break
+            
+            return self.concurrency_maximum - scrapers_running != scrapers_starting
+        else:
+            return False
+
+    def find_dead_tasks(self):
+        dead_tasks = []
+        for site_identifier in list(self.tasks.keys()):
+            site_task_instance = self.tasks[site_identifier]
+
+            if type(site_task_instance) == Thread or type(site_task_instance) == Process:
+                if not site_task_instance.is_alive():
+                    dead_tasks.append(site_identifier)
+                    self.scraper_manager.set_site_finished(site_identifier)
+                    del self.tasks[site_identifier]
+            else:
+                if site_task_instance:
+                    dead_tasks.append(site_identifier)
+                    self.scraper_manager.set_site_finished(site_identifier)
+                    del self.tasks[site_identifier]
+        return dead_tasks
+
+def parse_args():
     parser = argparse.ArgumentParser(
                     prog = "newswall Scrapers",
-                    description = "This program starts threads for scrapers and provides functions for reporting them to a MongoDB instance.",
+                    description = "This program starts the scrapers and uses a scheduler to run them.",
                     epilog = "Text at the bottom of help")
 
-    parser.add_argument("config_path", action="store", type=str, default=config_path, help="Path to the configuration file to load and use")
-    parser.add_argument("-m", "--mode", dest="mode", action="store", type=str, default="multiprocessing", help="Run the scrapers in a different mode (single = single site mode, threading = threaded mode, multiprocessing = multiprocessing mode)")
-    parser.add_argument("-s", "--site", dest="site", action="store", type=str, default="", help="Site to run and scrape (single-site mode only)")
+    parser.add_argument("configuration_path", action="store", type=str, default=get_config_path(), help="Path to the configuration file to load and use")
+    parser.add_argument("-m", "--concurrency-mode", dest="concurrency_mode", action="store", type=str, default="multiprocessing", help="Run the tasks in a certain concurrency mode (single = single site mode, threading = threaded mode, multiprocessing = multiprocessing mode)")
+    parser.add_argument("-n", "--concurrency-maximum", dest="concurrency_maximum", action="store", type=int, default=5, help="A number to denote the instances of scrapers to run concurrently")
+    parser.add_argument("-t", "--concurrency-interval", dest="concurrency_interval", action="store", type=int, default=1800, help="The interval between launching the number of tasks specified as the concurrency maximum")
+    parser.add_argument("-o", "--override-site", dest="override_site", action="store", type=str, default="", help="Override the configuration and only start the specified site")
     parser.add_argument("-x", "--disable-xvfb", dest="disable_xvfb", action="store_true", default=False, help="Disable headless Xvfb and use DISPLAY from script environment")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=True)
 
-    return parser
+    return parser, parser.parse_args()
 
 def main():
-    parser = args_parser()
-    args = parser.parse_args()
+    parser, args = parse_args()
 
-    if args.mode != "single" and args.mode != "multiprocessing" and args.mode != "threading":
-        parser.print_help()
-        return
+    try:
+        concurrency_mode = ConcurrencyMode(args.concurrency_mode)
+    except:
+        raise InvalidProgramArgumentException("Concurrency mode '%s' was not found")
 
-    print("Attempting to load configuration file")
-    config_file = None
-    with open(args.config_path) as f:
-        config_file = json.load(f)
-    if config_file == None:
-        print("Failed to load configuration file from %s" % config_path)
+    manager = ScraperManager(args.configuration_path)
+    manager.set_concurrency_mode(concurrency_mode)
+    
+    try:
+        version = manager.connect_to_database()
+        print("ScraperManager connected to database (MongoDB v%s)" % version)
+    except ApplicationException as application_exception:
+        print(application_exception.message)
         sys.exit(1)
-    print("Loaded configuration file from %s" % config_path)
 
-    if not "database_url" in config_file:
-        print("Configuration does not contain a MongoDB database URL")
+    try:
+        manager.load_sites_from_configuration()
+    except ConfigurationException as configuration_exception:
+        print(configuration_exception.message)
         sys.exit(2)
 
-    if not "database_name" in config_file:
-        print("Configuration does not contain a MongoDB database name")
+    if args.override_site != "":
+        manager.set_site_override(args.override_site)
+
+    if manager.get_num_scrapers_enabled() == 0:
+        print("No scrapers are enabled")
         sys.exit(3)
 
-    print("Attempting to connect to MongoDB synchronously")
-    sync_mongodb_client = MongoClient(config_file["database_url"])
-    sync_mongodb_database = sync_mongodb_client[config_file["database_name"]]
+    scheduler = ScraperScheduler(manager,
+        concurrency_maximum=args.concurrency_maximum,
+        concurrency_interval=args.concurrency_interval)
 
-    def log(line):
-        log_line = {"date": datetime.datetime.utcnow(), "source": "scrapers", "text": line}
+    running = True
+    while running:
+        scrapers_started = scheduler.run_iteration()
+        if scrapers_started:
+            manager.log("%d scrapers are running" % (manager.get_num_scrapers_running()))
 
-        log_id = sync_mongodb_database["log"].insert_one(log_line).inserted_id
-        log_line["_id"] = log_id
-        
-        if args.verbose:
-            print("[%s] [%s] %s" % (log_line["source"], log_line["date"], line))
+        dead_tasks = scheduler.find_dead_tasks()
+        if len(dead_tasks) > 0:
+            manager.log("%d scrapers have ended" % len(dead_tasks))
 
-    info = sync_mongodb_client.server_info()
-    log("Application connected to MongoDB (%s) synchronously" % (info["version"]))
-    
-    sites = config_file["sites"].items()
-    log("Loaded %d sites" % (len(sites)))
+        time.sleep(0.1)
 
-    if len(sites) == 0:
-        log("No scrapers configured, aborting.")
-        sys.exit(4)
-
-    threads = []
-    processes = []
-    for site_id, site_config in sites:
-        if args.mode == "single" and site_id != args.site:
-            continue
-
-        if not "name" in site_config:
-            log("Configuration for site '%s' does not contain a name" % (site_id))
-            continue
-
-        if not "enabled" in site_config:
-            log("Configuration for site '%s' does not have an 'enabled' property" % (site_id))
-            continue
-
-        if not "path" in site_config:
-            log("Configuration for site '%s' does not have a valid path" % (site_id))
-            continue
-        
-        if not "class" in site_config:
-            log("Configuration for site '%s' does not specify what class to start" % (site_id))
-            continue
-
-        if not site_config["enabled"] and args.mode != "single":
-            log("Site '%s' is disabled" % (site_id))
-            continue
-        
-        if not ".py" in site_config["path"]:
-            site_config["path"] = site_config["path"] + ".py"
-
-        site_path = os.path.join(get_build_root(), site_config["path"])
-        if not os.path.exists(site_path):
-            log("Site '%s' cannot be found at %s" % (site_id, site_path))
-            continue
-        log("Importing '%s' @ '%s'" % (site_id, site_path))
-        module = import_site(site_path)
-
-        module_class = getattr(module, site_config["class"])
-        module_helper = Helper(site_id, site_config["name"], sync_mongodb_database, args.mode, args.disable_xvfb)
-        module_obj = module_class(module_helper)
-
-        def delayed_start():
-            delayed_start_secs = module_helper.interval()
-            log("Delaying start for %s by %d seconds" % (site_id, delayed_start_secs))
-            time.sleep(delayed_start_secs)
-            module_obj.start()
-
-        if args.mode == "threading":
-            thread = threading.Thread(target=delayed_start, args=[])
-            threads.append(thread)
-            thread.start()
-        elif args.mode == "multiprocessing":
-            process = Process(target=delayed_start, args=())
-            processes.append(process)
-            process.start()
-        else:
-            module_obj.start()
-
-    if args.mode == "threading":
-        if len(threads) == 0:
-            log("No scrapers started, aborting.")
-            sys.exit(5)
-
-        log("All site threads started")
-        for thread in threads:
-            thread.join()
-    elif args.mode == "multiprocessing":
-        if len(processes) == 0:
-            log("No scrapers started, aborting.")
-            sys.exit(5)
-
-        log("All site threads started")
-        for process in processes:
-            process.join()
-    
-    log("Shutting down synchronous MongoDB client")
-    sync_mongodb_client.close()
+    manager.shutdown()
 
 if __name__ == "__main__":
     main()
