@@ -351,7 +351,7 @@ def parse_args():
     parser.add_argument("-n", "--concurrency-maximum", dest="concurrency_maximum", action="store", type=int, default=5, help="A number to denote the instances of scrapers to run concurrently")
     parser.add_argument("-t", "--concurrency-interval", dest="concurrency_interval", action="store", type=int, default=1800, help="The interval between launching the number of tasks specified as the concurrency maximum")
     parser.add_argument("-s", "--sigkill-child-processes", dest="sigkill_child_processes", action="store_true", default=False, help="Send SIGKILL to all child processes after running the scraper")
-    parser.add_argument("-d", "--start-detached", dest="start_detached", action="store_true", default=False, help="Start the browser process detached")
+    parser.add_argument("-d", "--start-detached", dest="start_detached", action="store_true", default=False, help="(Undetected Chromedriver) Start the browser process detached as a daemon")
     parser.add_argument("-r", "--random-user-data-directory", dest="random_user_data_directory", action="store_true", default=False, help="Start the browser process with a random user data directory every time it scrapes (including each scrape in the same program execution)")
     parser.add_argument("-c", "--cleanup-user-data-directory", dest="cleanup_user_data_directory", action="store_true", default=False, help="Remove the whole user data directory every time it scrapes (including each scrape in the same program execution)")
     parser.add_argument("-o", "--override-site", dest="override_site", action="store", type=str, default="", help="Override the configuration and only start the specified site")
