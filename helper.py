@@ -154,6 +154,7 @@ class Helper:
         driver = uc.Chrome(options=options,
             driver_executable_path=chromedriver_path,
             browser_executable_path=chrome_path,
+            service_log_path=self.id+".log",
             user_data_dir=profile_dir,
             display=display,
             use_subprocess=(not self.start_detached))
