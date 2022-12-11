@@ -154,7 +154,6 @@ class Helper:
             driver_executable_path=chromedriver_path,
             browser_executable_path=chrome_path,
             user_data_dir=profile_dir,
-            log_level=10,
             display=display)
 
         # find the window ID for this window
