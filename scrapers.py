@@ -326,12 +326,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
                     prog = "newswall Scrapers",
                     description = "This program starts the scrapers and uses a scheduler to run them.",
-                    epilog = "Text at the bottom of help")
+                    epilog = "For multiprocessing mode, it is recommended to use sigkill_child_processes")
 
     parser.add_argument("configuration_path", action="store", type=str, default=get_config_path(), help="Path to the configuration file to load and use")
     parser.add_argument("-m", "--concurrency-mode", dest="concurrency_mode", action="store", type=str, default="multiprocessing", help="Run the tasks in a certain concurrency mode (single = single site mode, threading = threaded mode, multiprocessing = multiprocessing mode)")
     parser.add_argument("-n", "--concurrency-maximum", dest="concurrency_maximum", action="store", type=int, default=5, help="A number to denote the instances of scrapers to run concurrently")
     parser.add_argument("-t", "--concurrency-interval", dest="concurrency_interval", action="store", type=int, default=1800, help="The interval between launching the number of tasks specified as the concurrency maximum")
+    parser.add_argument("-s", "--sigkill-child-processes", dest="sigkill_child_processes", action="store_true", default=False, help="Send SIGKILL to all child processes after running the scraper")
     parser.add_argument("-o", "--override-site", dest="override_site", action="store", type=str, default="", help="Override the configuration and only start the specified site")
     parser.add_argument("-x", "--disable-xvfb", dest="disable_xvfb", action="store_true", default=False, help="Disable headless Xvfb and use DISPLAY from script environment")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=True)
@@ -346,7 +347,7 @@ def main():
     except:
         raise InvalidProgramArgumentException("Concurrency mode '%s' was not found")
 
-    manager = ScraperManager(args.configuration_path)
+    manager = ScraperManager(args.configuration_path, sigkill_child_processes=args.sigkill_child_processes)
     manager.set_concurrency_mode(concurrency_mode)
     
     try:
