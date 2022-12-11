@@ -244,7 +244,8 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                         "summary",
                         "excerpt",
                         "description",
-                        "body"
+                        "body",
+                        "text"
                     ];
 
                     let articleListItemInfo = $("<div></div>")
