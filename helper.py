@@ -65,7 +65,7 @@ class Helper:
 
     def get_user_data_directory_path(self):
         if self.random_user_data_directory:
-            return os.path.join(profiles_folder, self.run_identifier)
+            return os.path.join(profiles_folder, str(self.run_identifier))
         else:
             return os.path.join(profiles_folder, self.id)
 
