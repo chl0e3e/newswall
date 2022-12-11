@@ -67,7 +67,14 @@ class ConcurrencyMode(Enum):
     MULTIPROCESSING = "multiprocessing"
 
 class ScraperManager:
-    def __init__(self, configuration_path="config.json", verbose=True, sigkill_child_processes=True, disable_xvfb=False, start_detached=False):
+    def __init__(self,
+            configuration_path="config.json",
+            verbose=True,
+            sigkill_child_processes=True,
+            disable_xvfb=False,
+            start_detached=False,
+            random_user_data_directory=False,
+            cleanup_user_data_directory=True):
         if not os.path.exists(configuration_path):
             raise ConfigurationNotFoundException("The configuration file specified does not exist.")
         with open(configuration_path) as f:
@@ -245,7 +252,14 @@ class ScraperManager:
             try:
                 sync_mongodb_client = MongoClient(self.configuration["database_url"])
                 sync_mongodb_database = sync_mongodb_client[self.configuration["database_name"]]
-                site_helper = Helper(site_identifier, site_configuration["name"], sync_mongodb_database, self.sigkill_child_processes, self.disable_xvfb, self.start_detached)
+                site_helper = Helper(site_identifier,
+                    site_configuration["name"],
+                    sync_mongodb_database,
+                    sigkill_child_processes=self.sigkill_child_processes,
+                    disable_xvfb=self.disable_xvfb,
+                    start_detached=self.start_detached,
+                    cleanup_user_data_directory=self.cleanup_user_data_directory,
+                    random_user_data_directory=self.random_user_data_directory)
                 site_object = self.scrapers[site_identifier]["class"](site_helper)
                 site_object.start()
             except Exception as e:
