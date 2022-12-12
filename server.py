@@ -186,7 +186,7 @@ class NewsWall:
             cursor = self.async_mongodb_database.log.find({'_id': {'$gt': first_log_line_id}}).sort([('_id', -1)])
             temp_logs_buffer = await cursor.to_list(length=100)
             temp_logs_buffer.reverse()
-
+        
             for log_line in temp_logs_buffer:
                 self.logs_buffer.pop(0)
                 self.logs_buffer.insert(0, log_line)
@@ -268,6 +268,8 @@ class NewsWall:
                             docs = []
                             async for doc in self.async_mongodb_database["empty"].aggregate(aggregation):
                                 docs.append(doc)
+                            if feed_cursor != None:
+                                docs.reverse()
                             await ws.send_str(json.dumps({"cmd": "report", "data": docs, "prepend": feed_cursor != None}, default=str))
         except:
             del self.clients[ws]

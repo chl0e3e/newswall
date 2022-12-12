@@ -32,7 +32,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
 
     class Root {
         constructor(id, siteData) {
-            console.log("Root");
             this.id = id;
             this.siteData = siteData;
             this.group = new RootGroup(this, uuidv4(), []);
@@ -145,15 +144,11 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         btnRemove(e) {
-            console.log("btnRemove");
-            console.log(e);
             this.parent.remove(this);
             this.html.remove();
         }
 
         btnAddGroup(e) {
-            console.log("btnAddGroup");
-            console.log(e);
             let group = new Group(this, uuidv4(), this.filters);
             this.children.push(group);
             this.childrenEl.append(group.render());
@@ -217,8 +212,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         renderRuleBody() {
-            console.log("renderRuleBody - Root");
-
             let filterContainer = $("<div></div>")
                 .attr("class", "rule-filter-container");
             this.filter = $("<select></select>")
@@ -270,8 +263,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
                 e.stopPropagation();
                 return;
             }
-            console.log("btnAddGroup");
-            console.log(e);
             let group = new Group(this, uuidv4(), this.parent.parent.filters(this.value.val()));
             this.children.push(group);
             this.childrenEl.append(group.render());
@@ -279,7 +270,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         setHasGroup(val) {
-            console.log("setHasGroup");
             this.hasGroup = val;
             if (val) {
                 this.editAddGroupItemLink.addClass("disabled");
@@ -301,17 +291,11 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
                 .attr("id", this.id)
                 .attr("class", "rules-group-container");
 
-            console.log("Group");
-            console.log(this.parent);
-            console.log("Group end");
-
             this.html.append(this.renderHeader());
             this.html.append(this.renderBody());
         }
         
         renderHeader() {
-            console.log("renderHeader");
-
             this.header = $("<div></div>")
                 .attr("class", "rules-group-header");
 
@@ -389,7 +373,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         renderBody() {
-            console.log("renderBody");
             let body = $("<div></div>")
                 .attr("class", "rules-group-body");
             this.rulesList = $("<div></div>")
@@ -403,10 +386,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         btnAddRule(e) {
-            console.log("btnAddRule");
-            console.log(e);
-            console.log(this);
-
             let rule = new Rule(this, uuidv4(), this.filters);
             this.children.push(rule);
             this.rulesList.append(rule.render());
@@ -414,20 +393,12 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         btnAddGroup(e) {
-            console.log("btnAddGroup");
-            console.log(e);
-            console.log(this);
-
             let group = new Group(this, uuidv4(), this.filters);
             this.children.push(group);
             this.rulesList.append(group.render());
         }
 
         btnRemove(e) {
-            console.log("btnRemove");
-            console.log(e);
-            console.log(this);
-
             this.parent.remove(this);
             this.html.remove();
             if(this.parent instanceof RootRule) {
@@ -443,9 +414,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
     class RootGroup extends Group {
         constructor(parent, id, filters) {
             super(parent, id, filters);
-
-            console.log("RootGroup " + id);
-            console.log(this.rulesList);
         }
 
         renderActions() {
@@ -473,10 +441,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
         }
 
         btnAddRule(e) {
-            console.log("btnAddRule - RootGroup");
-            console.log(e);
-            console.log(this);
-
             let rule = new RootRule(this, uuidv4(), []);
             this.children.push(rule);
             this.rulesList.append(rule.render());
@@ -543,8 +507,6 @@ define(["jquery", "materialize", "uuidv4"], function($, materialize, uuidv4) {
             var self = this;
             function traverse(data, parent, filters) {
                 var oopNode;
-
-                console.log(data);
                 
                 if(data["type"] == "group") {
                     oopNode = new Group(parent, uuidv4(), filters);

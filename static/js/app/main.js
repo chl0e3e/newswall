@@ -27,7 +27,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
         }
 
         socket.addEventListener("open", function (event) {
-            console.log("Socket open");
             send({"cmd": "sites"});
         });
 
@@ -139,7 +138,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
 
         function query(data, pagination={}, feedCursor={}) {
             window.currentQuery = data;
-            console.log(data);
 
             var queryCmdData = {
                 "cmd": "query",
@@ -394,7 +392,6 @@ define(["jquery", "masonry", "imagesloaded", "site-query-builder", "materialize"
                     queryBuilder.postRender();
                 }
             } else if(message.cmd == "report") {
-                console.log("report");
                 if(message.prepend) {
                     window.currentData = message.data.concat(window.currentData);
                 } else {

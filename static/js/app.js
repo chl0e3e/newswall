@@ -13,7 +13,11 @@ requirejs.config({
         "xterm.fit": "lib/xterm.fit.min"
     },
     "shim": {
-        "xterm.fit": ["xterm"]
+        "xterm.fit": ["xterm"],
+        "materialize": ["jquery"],
+        "masonry": ["imagesloaded"],
+        "log": ["xterm"],
+        "app": ["jquery", "materialize", "masonry", "imagesloaded", "site-query-builder", "log", "uuidv4"]
     }
 });
 
