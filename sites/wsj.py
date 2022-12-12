@@ -178,7 +178,10 @@ class WallStreetJournal:
 
                     article_data["title"] = article_link_element.get_attribute("innerText")
                     article_time_to_read_element = self.driver.execute_script("return arguments[0].nextSibling", article_link_element)
-                    article_data["mins_to_read"] = article_time_to_read_element.get_attribute("innerText")
+                    try:
+                        article_data["mins_to_read"] = article_time_to_read_element.get_attribute("innerText")
+                    except:
+                        article_data["mins_to_read"] = None
 
                     report = self.helper.sync_report(article_id, article_data)
                     self.helper.log("Inserted report %s: %s" % (article_id, report.inserted_id))
