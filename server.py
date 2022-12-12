@@ -246,8 +246,6 @@ class NewsWall:
         async def send(data):
             await ws.send_str(json.dumps(data, default=str))
 
-        await send({"cmd": "log", "data": self.logs_buffer})
-
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
@@ -270,7 +268,11 @@ class NewsWall:
                                 docs.append(doc)
                             if feed_cursor != None:
                                 docs.reverse()
-                            await ws.send_str(json.dumps({"cmd": "report", "data": docs, "prepend": feed_cursor != None}, default=str))
+                            await send({
+                                "cmd": "report",
+                                "data": docs,
+                                "prepend": feed_cursor != None
+                            })
         except:
             del self.clients[ws]
 

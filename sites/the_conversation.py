@@ -42,9 +42,13 @@ class TheConversation:
             self.helper.log("Waiting for page")
             WebDriverWait(self.driver, interval).until(EC.presence_of_element_located((By.ID, "page-wrapper")))
         
-        def check_cookie_disclaimer_2():
-            pass
-
+        def check_cookie_disclaimer():
+            try:
+                consent_buttons = self.driver.find_elements(By.CSS_SELECTOR, "[role='presentation'][class='MuiDialog-root'] button[aria-label='Close']")
+                consent_buttons[0].click()
+            except Exception as e:
+                self.helper.log("Failed to find cookie disclaimer", exception=traceback.format_exc())
+                
         def save_element_image(element, file):
             location = element.location_once_scrolled_into_view
             png = self.driver.get_screenshot_as_png() # saves screenshot of entire page
@@ -117,7 +121,7 @@ class TheConversation:
         try:
             navigate()
             wait_for_page_ready(self.helper.interval_page_ready())
-            #check_cookie_disclaimer_2()
+            check_cookie_disclaimer()
             #wait_for_page_ready(self.helper.interval_page_ready())
             self.helper.scroll_down_page()
             save_articles()
