@@ -10,4 +10,4 @@ MONGOD_BINARY=$(cat $VARS_DIR/mongod)
 mkdir -p ./db/
 
 echo "Starting mongod: $MONGOD_BINARY"
-$MONGOD_BINARY -f db.conf
+$MONGOD_BINARY -f db.conf --auth

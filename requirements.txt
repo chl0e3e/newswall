@@ -10,3 +10,4 @@ xvfbwrapper
 Pillow
 aiofiles
 psutil
+stanza
