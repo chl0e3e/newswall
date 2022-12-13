@@ -1,5 +1,5 @@
 {
-    "database_url": "mongodb://scrapermanager:Zjgn%25jN43sjXZn56@localhost:27017/",
+    "database_url": "mongodb://scrapermanager:ZjgnA25jN43sjXZn56@localhost:27017/",
     "database_name": "newswall",
     "sites": {
         "bbc": {
